@@ -4,6 +4,7 @@ import sys; sys.path.append('.')
 
 from psycopg2._psycopg import connection, cursor
 from psycopg2.pool import AbstractConnectionPool, SimpleConnectionPool
+import psycopg2.extras
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -35,7 +36,6 @@ class SimpleDataBase(DataBase):
         self.pool = SimpleConnectionPool(1, 20, self.url)
         self.check_database_exists()
     
-
     def check_database_exists(self):
         '''Создает базу данных если ее нет'''
         conn = self.get_conn()
@@ -76,7 +76,7 @@ class SimpleDataBase(DataBase):
     
     def select(self, sql: str, *values) -> Any:
         conn = self.get_conn()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         cur.execute(sql, values)
         value = cur.fetchall()
@@ -91,3 +91,7 @@ db = SimpleDataBase()
 
 def database() -> DataBase:
     return db
+
+if __name__ == '__main__':
+    for i in database().select('SELECT * FROM country;'):
+        print(i['name'])

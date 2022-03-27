@@ -1,0 +1,2 @@
+2022-03-14 14:20:46.255 +07 [17045] FATAL:  lock file "postmaster.pid" already exists
+2022-03-14 14:20:46.255 +07 [17045] HINT:  Is another postmaster (PID 26807) running in data directory "/data/data/com.termux/files/usr/var/lib/postgresql"?
