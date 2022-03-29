@@ -3,7 +3,7 @@
 --
 
 SET client_encoding = 'UTF8';
-
+CREATE EXTENSION pg_trgm;
 
 --
 -- Удаляем таблицы
@@ -102,34 +102,33 @@ CREATE TABLE income_times(
     income_time time UNIQUE NOT NULL
 );
 
---
--- Создаем представления
---
-
-CREATE OR REPLACE VIEW builds_shop AS
-SELECT b.name AS build_name, b.price, b.description, b.income, n.name AS needed_build_name, count
-FROM builds b
-LEFT JOIN builds_needed_for_purchase USING(build_id)
-LEFT JOIN builds n ON builds_needed_for_purchase.needed_build_id = n.build_id; 
-
-CREATE OR REPLACE VIEW units_shop AS
-SELECT u.name AS unit_name, u.price, u.description, u.features, n.name AS needed_build_name, count
-FROM units u
-LEFT JOIN units_needed_for_purchase USING(unit_id)
-LEFT JOIN builds n ON units_needed_for_purchase.needed_build_id = n.build_id;
-
 -- 
 -- Создаем функции
 --
 
-CREATE OR REPLACE FUNCTION get_build_inventory_by_country(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, income int) AS $$
+CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price int, description text, income int, needed_build_name varchar, count int) AS $$
+    SELECT b.name AS build_name, b.price, b.description, b.income, n.name AS needed_build_name, count
+    FROM builds b
+    LEFT JOIN builds_needed_for_purchase USING(build_id)
+    LEFT JOIN builds n ON builds_needed_for_purchase.needed_build_id = n.build_id; 
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price int, description text, features text, needed_build_name varchar, count int) AS $$
+    SELECT u.name AS unit_name, u.price, u.description, u.features, n.name AS needed_build_name, count
+    FROM units u
+    LEFT JOIN units_needed_for_purchase USING(unit_id)
+    LEFT JOIN builds n ON units_needed_for_purchase.needed_build_id = n.build_id;
+$$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION get_builds_inventory(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, income int) AS $$
     SELECT name, count, description, income*count AS income
     FROM builds
     JOIN builds_inventory USING(build_id)
     WHERE country_id = getting_country_id
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_unit_inventory_by_country(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, features text) AS $$
+CREATE OR REPLACE FUNCTION get_units_inventory(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, features text) AS $$
     SELECT name, count, description, features
     FROM units
     JOIN units_inventory USING(unit_id)
@@ -153,7 +152,19 @@ CREATE OR REPLACE FUNCTION get_income_country(getting_country_id int) RETURNS in
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_needed_builds_for_build(customer_country_id int, build_name varchar) RETURNS TABLE(needed_build_name varchar, count int) AS $$
+CREATE OR REPLACE FUNCTION get_builds_by_name(build_name varchar) RETURNS TABLE(build_id int, name varchar) AS $$
+    SELECT build_id, name
+    FROM builds
+    WHERE name % build_name
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION get_units_by_name(unit_name varchar) RETURNS TABLE(unit_id int, name varchar) AS $$
+    SELECT unit_id, name
+    FROM units
+    WHERE name % unit_name
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION get_needed_builds_for_build(customer_country_id int, buying_build_id int) RETURNS TABLE(needed_build_name varchar, count int) AS $$
     SELECT n.name, COALESCE(i.count, 0)-bn.count
     FROM builds b
     JOIN builds_needed_for_purchase bn USING(build_id)
@@ -161,10 +172,10 @@ CREATE OR REPLACE FUNCTION get_needed_builds_for_build(customer_country_id int, 
     LEFT JOIN (SELECT build_id, count
                FROM builds_inventory
                WHERE country_id = customer_country_id) AS i ON n.build_id = i.build_id
-    WHERE b.name = build_name;
+    WHERE b.build_id = buying_build_id AND (COALESCE(i.count, 0)-bn.count) < 0;
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_needed_builds_for_unit(customer_country_id int, unit_name varchar) RETURNS TABLE(needed_build_name varchar, count int) AS $$
+CREATE OR REPLACE FUNCTION get_needed_builds_for_unit(customer_country_id int, buying_unit_id int) RETURNS TABLE(needed_build_name varchar, count int) AS $$
     SELECT n.name, COALESCE(i.count, 0)-un.count
     FROM units u
     JOIN units_needed_for_purchase un USING(unit_id)
@@ -172,24 +183,24 @@ CREATE OR REPLACE FUNCTION get_needed_builds_for_unit(customer_country_id int, u
     LEFT JOIN (SELECT build_id, count
                FROM builds_inventory
                WHERE country_id = customer_country_id) AS i ON n.build_id = i.build_id
-    WHERE u.name = unit_name;
+    WHERE u.unit_id = buying_unit_id AND (COALESCE(i.count, 0)-un.count) < 0;
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_needed_price_for_build(customer_country_id int, build_name varchar, count int) RETURNS int AS $$ 
+CREATE OR REPLACE FUNCTION get_needed_price_for_build(customer_country_id int, buying_build_id int, count int) RETURNS int AS $$ 
     SELECT (SELECT money 
             FROM countries 
             WHERE country_id = customer_country_id)-price*count AS needed_money
     FROM builds
-    WHERE name = build_name
+    WHERE build_id = buying_build_id
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_needed_price_for_unit(customer_country_id int, unit_name varchar, count int) RETURNS int AS $$
+CREATE OR REPLACE FUNCTION get_needed_price_for_unit(customer_country_id int, buying_unit_id int, count int) RETURNS int AS $$
     SELECT (SELECT money 
             FROM countries
             WHERE country_id = customer_country_id)-price*count AS needed_money
     FROM units
-    WHERE name = unit_name
+    WHERE unit_id = buying_unit_id
 $$ LANGUAGE SQL;
 
 --

@@ -1,13 +1,11 @@
 '''Модуль для работы с базой данных'''
 import os
-import sys; sys.path.append('.')
+from abc import ABC, abstractmethod
+from typing import Any
 
 from psycopg2._psycopg import connection, cursor
 from psycopg2.pool import AbstractConnectionPool, SimpleConnectionPool
 import psycopg2.extras
-
-from abc import ABC, abstractmethod
-from typing import Any
 
 
 class DataBase(ABC):
@@ -27,6 +25,10 @@ class DataBase(ABC):
     def select(self, sql: str, *values) -> Any:
         pass
 
+    @abstractmethod
+    def select_one(self, sql: str, *values) -> Any:
+        pass
+
 
 class SimpleDataBase(DataBase):
     url: str = os.getenv('DATABASE_URL')
@@ -37,20 +39,20 @@ class SimpleDataBase(DataBase):
         self.check_database_exists()
     
     def check_database_exists(self):
-        '''Создает базу данных если ее нет'''
+        """Создает базу данных если ее нет"""
         conn = self.get_conn()
         cur = conn.cursor()
 
-        try: 
-            cur.execute('SELECT * FROM Country')
-        except:
-            conn.rollback()
+        cur.execute('SELECT * '
+                    'FROM information_schema.tables '
+                    'WHERE table_name = \'countries\'')
+        if not cur.fetchall:
             self.init_db(conn, cur)
         
         self.put_conn(conn)
 
     def init_db(self, conn: connection, cur: cursor):
-        '''Инициализирует базу данных'''
+        """Инициализирует базу данных"""
         with open('DataBase/create_db.sql', 'r') as r:
             sql = r.read()
         
@@ -80,7 +82,17 @@ class SimpleDataBase(DataBase):
 
         cur.execute(sql, values)
         value = cur.fetchall()
-        value = value[0] if len(value) == 1 else value
+        conn.commit()
+
+        self.put_conn(conn)
+        return value
+
+    def select_one(self, sql: str, *values) -> Any:
+        conn = self.get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute(sql, values)
+        value = cur.fetchone()
         conn.commit()
 
         self.put_conn(conn)
@@ -91,7 +103,3 @@ db = SimpleDataBase()
 
 def database() -> DataBase:
     return db
-
-if __name__ == '__main__':
-    for i in database().select('SELECT * FROM country;'):
-        print(i['name'])
