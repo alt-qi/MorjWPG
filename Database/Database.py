@@ -31,7 +31,7 @@ class DataBase(ABC):
 
 
 class SimpleDataBase(DataBase):
-    url: str = os.getenv('DATABASE_URL')
+    url = os.getenv('DATABASE_URL')
     pool: AbstractConnectionPool
 
     def __init__(self):
