@@ -90,14 +90,12 @@ class ConcreteConfig:
     def _change_config(self, value, column: str):
         if any((self.curator_role, self.player_role, 
                 self.publisher_channel, self.country_prefix)):
-            print('update')
             database().insert(
                 'UPDATE config '
                f'SET {column} = %s',
                 value
             )
         else:
-            print('insert')
             database().insert(
                f'INSERT INTO config({column}) '
                 'VALUES(%s)',

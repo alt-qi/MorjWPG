@@ -66,8 +66,6 @@ class Inventory(List):
             values = []
             for i in countries:
                 values.append(f"({i['country_id']}, {item_id}, {count})")
-            
-            print(values)
         
         else:
             values = []
