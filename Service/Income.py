@@ -78,7 +78,9 @@ class Income(Publisher):
                 hour=self.income_time.hour,
                 minute=self.income_time.minute,
                 tzinfo=offset
-            )+timedelta(days=1) if now_time>self.income_time else timedelta(days=0)
+            )
+            if now_time>self.income_time:
+                income_datetime+timedelta(days=1)
 
             self.income_time = (income_datetime-now_datetime).seconds
     
