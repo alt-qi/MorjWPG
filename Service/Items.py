@@ -77,11 +77,14 @@ class Item(ABC):
         for i in parameters.keys():
             columns.append(f'{i} = %s')
 
-        columns = ', '.join(columns)
-        database().insert(f'UPDATE {self.table_name} '
-                          f'SET {columns} '
-                          f'WHERE {id_} = %s', 
-                          *parameters.values(), item_id)
+        if columns:
+            columns = ', '.join(columns)
+            database().insert(
+                    f'UPDATE {self.table_name} '
+                    f'SET {columns} '
+                    f'WHERE {id_} = %s', 
+                    *parameters.values(), item_id
+            )
 
     def delete(self, item_id: int=-1):
         if item_id == -1:
