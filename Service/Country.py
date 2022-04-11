@@ -14,6 +14,11 @@ class Country:
     id_: tuple[int]
     where: str
 
+    def delete(self):
+        database().insert(
+            'DELETE FROM countries '+self.where
+        )
+
 
 class OneCountry(Country):
     len_: int = 1

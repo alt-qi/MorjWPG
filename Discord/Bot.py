@@ -15,6 +15,7 @@ client.load_extension('Cogs.Events')
 
 client.load_extension('Cogs.Items')
 client.load_extension('Cogs.Economy')
+client.load_extension('Cogs.Country')
 
 client.load_extension('Cogs.Lists')
 client.load_extension('Cogs.Income')

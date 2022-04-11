@@ -7,7 +7,7 @@ from nextcord import Member, Interaction
 
 from Service.Items import ItemFabric
 from Service.Lists import ShopFabric, InventoryFabric
-from Service.Country import OneCountry, AllCountries
+from Service.Country import Country, OneCountry, AllCountries
 from Discord.Cogs.Cog import MyCog
 from Discord.Controller.Items import get_item_id
 from Discord.Cogs.exceptions import IsntRuler
@@ -104,7 +104,7 @@ def get_list(list: dict[str, dict[str, Any]]):
     return list_output
 
 async def get_country_parameters(inter: Interaction, cog: MyCog, 
-                                 user: Member, for_all_countries: bool):
+                                 user: Member, for_all_countries: bool) -> Country:
     """
     Функция для получения страны из команд по типу: 
     /edit-money player: ... for_all_countries: ...
