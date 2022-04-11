@@ -2,7 +2,7 @@ from typing import Any
 from abc import ABC, abstractmethod, abstractproperty
 
 from nextcord import Interaction, Embed, Member, slash_command, \
-                     SlashOption, Role, TextChannel
+                     SlashOption, Role
 from nextcord.abc import GuildChannel
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Bot, Cog
