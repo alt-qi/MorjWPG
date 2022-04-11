@@ -1,7 +1,7 @@
 if __name__ == '__main__':
     import sys; sys.path.append('..')
 from abc import ABC, abstractmethod
-from datetime import timezone, timedelta, datetime, time
+from datetime import time, timezone, timedelta, datetime
 import threading
 
 from Database.Database import database
@@ -67,12 +67,20 @@ class Income(Publisher):
         self.income_time = database().select_one(
                 'SELECT get_next_income_time(%s) AS income_time',
                 datetime.now(offset).time())['income_time']
+
         if self.income_time:
-            self.income_time = abs(self._get_total_seconds(self.income_time) - \
-                               self._get_total_seconds(datetime.now(offset).time()))
-    
-    def _get_total_seconds(self, time_: time) -> int:
-        return time_.hour*3600+time_.minute*60
+            now_datetime = datetime.now(offset)
+            now_time = time(hour=now_datetime.hour, minute=now_datetime.minute)
+            income_datetime = datetime(
+                year=now_datetime.year, 
+                month=now_datetime.month, 
+                day=now_datetime.day,
+                hour=self.income_time.hour,
+                minute=self.income_time.minute,
+                tzinfo=offset
+            )+timedelta(days=1) if now_time>self.income_time else timedelta(days=0)
+
+            self.income_time = (income_datetime-now_datetime).seconds
     
 
     def get_income_times(self):

@@ -50,7 +50,7 @@ class MyCog(Cog):
 
         await view.wait()
         if view.answer_ == None: raise NoAnswer
-        else: return view.answer
+        else: return view.answer_
 
     async def page(self, inter: Interaction, title: str, user: Member,
                    list: list[str], page_number: int=1):

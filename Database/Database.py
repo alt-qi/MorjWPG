@@ -69,34 +69,39 @@ class SimpleDataBase(DataBase):
 
     def insert(self, sql: str, *values) -> None | Any:
         conn = self.get_conn()
-        cur = conn.cursor()
+        try:
+            cur = conn.cursor()
 
-        cur.execute(sql, values)
-        conn.commit()
-
-        self.put_conn(conn)
+            cur.execute(sql, values)
+            conn.commit()
+        finally:
+            self.put_conn(conn)
     
     def select(self, sql: str, *values) -> Any:
         conn = self.get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        cur.execute(sql, values)
-        value = cur.fetchall()
-        conn.commit()
+            cur.execute(sql, values)
+            value = cur.fetchall()
+            conn.commit()
 
-        self.put_conn(conn)
-        return value
+            return value
+        finally:
+            self.put_conn(conn)
 
     def select_one(self, sql: str, *values) -> Any:
         conn = self.get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        cur.execute(sql, values)
-        value = cur.fetchone()
-        conn.commit()
+            cur.execute(sql, values)
+            value = cur.fetchone()
+            conn.commit()
 
-        self.put_conn(conn)
-        return value
+            return value
+        finally:
+            self.put_conn(conn)
 
 
 db = SimpleDataBase()

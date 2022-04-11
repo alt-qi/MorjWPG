@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod, abstractproperty
 from nextcord import Interaction, Embed, Member, slash_command, \
                      SlashOption, Role
 from nextcord.abc import GuildChannel
+from nextcord.channel import TextChannel
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Bot, Cog
 
@@ -163,7 +164,6 @@ class CogConfig(Cog):
                                     channel: GuildChannel = SlashOption(
                                         name='канал',
                                         description='Текстовый канал в который бот будет публиковать сообщения о доходе',
-                                        verify=False
                                     )
     ):
         

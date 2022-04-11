@@ -120,17 +120,18 @@ class Order(ABC):
         self.needed_for_transact = {}
 
         conn = database().get_conn()
-        conn.set_isolation_level('READ COMMITTED')
-        with conn:
-            with conn.cursor() as cur:
-                self.check_transact_ability(cur, *args)
+        try:
+            conn.set_isolation_level('READ COMMITTED')
+            with conn:
+                with conn.cursor() as cur:
+                    self.check_transact_ability(cur, *args)
 
-                if self.transact_ability:
-                    self.transact(cur, *args)
-                else:
-                    raise CantTransact(self.needed_for_transact)
-        
-        database().put_conn(conn)
+                    if self.transact_ability:
+                        self.transact(cur, *args)
+                    else:
+                        raise CantTransact(self.needed_for_transact)
+        finally:
+            database().put_conn(conn)
 
     @abstractmethod
     def check_transact_ability(self, *args):
