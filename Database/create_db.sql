@@ -33,7 +33,7 @@ CREATE TABLE builds(
     name varchar(128) UNIQUE NOT NULL,
     price item_price,
     description text DEFAULT '',
-    income real DEFAULT 0.1,
+    income real DEFAULT 0.0,
     saleability boolean DEFAULT False,
 
     CONSTRAINT PK_builds_build_id PRIMARY KEY(build_id)
@@ -56,7 +56,7 @@ CREATE TABLE units(
     name varchar(128) UNIQUE NOT NULL,
     price item_price,
     description text DEFAULT '',
-    features text NOT NULL,
+    features text DEFAULT '',
     saleability boolean DEFAULT True,
 
     CONSTRAINT PK_units_unit_id PRIMARY KEY(unit_id)
@@ -107,19 +107,26 @@ CREATE TABLE income_times(
     income_time time UNIQUE NOT NULL
 );
 
+CREATE TABLE config(
+    curator_role varchar(32),
+    player_role varchar(32),
+    publisher_channel varchar(32),
+    country_prefix varchar(32)
+);
+
 -- 
 -- Создаем функции
 --
 
-CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, needed_build_name varchar, count int) AS $$
-    SELECT b.name AS build_name, b.price, b.description, b.income, n.name AS needed_build_name, count
+CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, saleability boolean, needed_build_name varchar, count int) AS $$
+    SELECT b.name AS build_name, b.price, b.description, b.income, b.saleability, n.name AS needed_build_name, count
     FROM builds b
     LEFT JOIN builds_needed_for_purchase USING(build_id)
     LEFT JOIN builds n ON builds_needed_for_purchase.needed_build_id = n.build_id; 
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, needed_build_name varchar, count int) AS $$
-    SELECT u.name AS unit_name, u.price, u.description, u.features, n.name AS needed_build_name, count
+CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, saleability boolean, needed_build_name varchar, count int) AS $$
+    SELECT u.name AS unit_name, u.price, u.description, u.features, u.saleability, n.name AS needed_build_name, count
     FROM units u
     LEFT JOIN units_needed_for_purchase USING(unit_id)
     LEFT JOIN builds n ON units_needed_for_purchase.needed_build_id = n.build_id;

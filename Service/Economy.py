@@ -4,8 +4,8 @@ if __name__ == '__main__':
 from psycopg2._psycopg import cursor
 
 from Database.Database import database
-from Country import Country, OneCountry
-from exceptions import OperationOnlyForOneCountry, CantTransact
+from Service.Country import Country
+from Service.exceptions import OperationOnlyForOneCountry, CantTransact
 
 
 class Economy:
@@ -23,6 +23,15 @@ class Economy:
             'FROM countries '
            f'{self.country.where}'
            )['money']
+
+    def income(self):
+        if self.country.len_ != 1:
+            raise OperationOnlyForOneCountry
+        
+        return database().select_one(
+            'SELECT COALESCE(get_income_country(%s), 0) AS income',
+            self.country.id_[0]
+        )['income']
 
     def pay(self, country_payee: Country, money: int|float):
         self.pay_ability = True
@@ -60,11 +69,13 @@ class Economy:
                     (self.new_money, self.country.id_[0]))
 
         cur.execute('UPDATE countries '
-                    'SET money = countries.money + %s '
+                    'SET money = money + %s '
                     'WHERE country_id = %s',
                     (money, country_payee.id_[0]))
 
-    def edit_money(self, money: int):
+    def edit_money(self, money: int|float):
+        print(money)
+        print(self.country.where)
         database().insert(
             'UPDATE countries '
             'SET money = money+%s '

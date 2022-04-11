@@ -10,8 +10,10 @@ from Database.Database import database
 offset = timezone(timedelta(hours=3))
 
 class Observer(ABC):
-    """Класс наблюдателя, нужен, чтобы публикатор(который выдает доход)
+    """
+    Класс наблюдателя, нужен, чтобы публикатор(который выдает доход)
     уведомлял наблюдателей об этом
+    
     """
 
     @abstractmethod
@@ -32,10 +34,6 @@ class Publisher(ABC):
     def notify(self):
         for i in self.observers:
             i.update()
-
-class ConsoleObserver(Observer):
-    def update(self):
-        print('income lol')
 
 class Income(Publisher):
     observers: list[Observer]
@@ -75,7 +73,18 @@ class Income(Publisher):
     
     def _get_total_seconds(self, time_: time) -> int:
         return time_.hour*3600+time_.minute*60
+    
+
+    def get_income_times(self):
+        income_times = []
+        for i in database().select(
+            'SELECT income_time '
+            'FROM income_times '
+            'ORDER BY income_time'
+            ):
+            income_times.append(str(i['income_time']))
         
+        return income_times
     
     def add_income_time(self, time_: time):
         database().insert('INSERT INTO income_times '

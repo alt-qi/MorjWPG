@@ -5,8 +5,10 @@ from Database.Database import database
 
 
 class Country:
-    """Интерфейс страны, страны должны выдавать
+    """
+    Интерфейс страны, страны должны выдавать
     информацию о себе для обращения к БД
+    
     """
     len_: int
     id_: tuple[int]

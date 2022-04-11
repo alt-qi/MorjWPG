@@ -3,13 +3,13 @@ if __name__ == '__main__':
 from typing import Any
 
 from Database.Database import database
-from Country import Country
-from Items import Item, Build, Unit
-from exceptions import OperationOnlyForOneCountry
+from Service.Country import Country
+from Service.Items import ItemFabric, Item
+from Service.exceptions import OperationOnlyForOneCountry
 
 
 class List:
-    '''Класс списков, которые использует предметы'''
+    """Класс списков, которые использует предметы"""
     item: Item
 
 class Shop(List):
@@ -66,6 +66,8 @@ class Inventory(List):
             values = []
             for i in countries:
                 values.append(f"({i['country_id']}, {item_id}, {count})")
+            
+            print(values)
         
         else:
             values = []
@@ -105,18 +107,17 @@ class Inventory(List):
 class ListFabric:
     """Класс фабрики создания списков"""
 
-    def _get_item(self, item: str) -> Item:
-        if item == 'build':
-            item_output = Build()
-        elif item == 'unit':
-            item_output = Unit()
-
-        return item_output
+    item_fabric: ItemFabric = ItemFabric()
 
 class ShopFabric(ListFabric):
     def get_shop(self, item: str) -> Shop:
-        return Shop(self._get_item(item))
+        return Shop(self.item_fabric.get_item(item))
 
 class InventoryFabric(ListFabric):
     def get_inventory(self, country: Country, item: str) -> Inventory:
-        return Inventory(self._get_item(item), country)
+        return Inventory(self.item_fabric.get_item(item), country)
+
+
+if __name__ == '__main__':
+    shop = ShopFabric().get_shop('build')
+    print(shop.get_shop())

@@ -6,14 +6,18 @@ from typing import Any
 from psycopg2._psycopg import cursor
 
 from Database.Database import database
-from Country import Country, OneCountry
-from exceptions import CantTransact, NoImportantParameter, OperationOnlyForOneCountry
+from Service.Country import Country
+from Service.exceptions import CantTransact, NoImportantParameter, \
+                               NoItem, OperationOnlyForOneCountry
 
 
 class Item(ABC):
-    """Интерфейс предметов, они должны выдавать имя своей таблицы, 
+    """
+    Интерфейс предметов, они должны выдавать имя своей таблицы, 
     имя в аргументах, параметры предмета и выдавать класс заказа 
-    для возможности покупки"""
+    для возможности покупки
+    
+    """
 
     table_name: str
     arguments_name: str
@@ -47,7 +51,7 @@ class Item(ABC):
                                'needed_build_id, count) ' 
                               f'VALUES{values}')
 
-    def update(self, item_id: int, *, parameters: dict[str, Any]):
+    def update(self, item_id: int, parameters: dict[str, Any]):
         needed_for_purchase_item = f'{self.table_name}_needed_for_purchase'
         id_ = f'{self.arguments_name}_id'
 
@@ -81,7 +85,7 @@ class Item(ABC):
 
     def delete(self, item_id: int=-1):
         if item_id == -1:
-            database().insert(f'TRUNCATE TABLE {self.table_name} RESTART IDENTITY')
+            database().insert(f'TRUNCATE TABLE {self.table_name} RESTART IDENTITY CASCADE')
         else:
             database().insert(f'DELETE FROM {self.table_name} '
                               f'WHERE {self.arguments_name}_id = %s', item_id)
@@ -207,7 +211,7 @@ class SellOrder(Order):
                      (country_seller.id_[0], item_id, count))
 
         self.new_seller_count = cur.fetchone()[0]
-        if not self.new_seller_count:
+        if self.new_seller_count < 0:
             self.transact_ability = False
             self.needed_for_transact['item'] = self.new_seller_count
 
@@ -275,3 +279,13 @@ class Unit(Item):
     def sell(self, country_seller: Country, country_customer: Country,
                    item_id: int, count: int, price: int|float):
         SellOrder(country_seller, country_customer, self, item_id, count, price)
+
+
+class ItemFabric:
+    def get_item(self, item: str) -> Item:
+        if item in ('bu', 'build', 'builds'):
+            return Build()
+        elif item in ('un', 'unit', 'units'):
+            return Unit()
+        else:
+            raise NoItem
