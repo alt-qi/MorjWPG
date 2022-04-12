@@ -59,7 +59,7 @@ class CogIncome(MyCog):
         await add_income_time(inter, self, self.income, time(hours, minutes))
     
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='delete-income-time', description='Удалить время дохода')
+    @slash_command(name='del-income-time', description='Удалить время дохода')
     async def delete_income_time(self, inter: Interaction,
                                  hours: int = _INCOME_TIME['hours'],
                                  minutes: int = _INCOME_TIME['minutes']

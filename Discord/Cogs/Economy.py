@@ -44,7 +44,7 @@ class Economy(MyCog):
         await edit_money(inter, self, money, player, for_all_countries)
 
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='delete-money', description='Удалить все деньги стране/странам')
+    @slash_command(name='del-money', description='Удалить все деньги стране/странам')
     async def delete_money(self, inter: Interaction,
                            player: Member = SlashOption(
                                name='игрок',

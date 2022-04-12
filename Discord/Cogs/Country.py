@@ -9,7 +9,7 @@ from Discord.Cogs.Cog import MyCog
 class Country(MyCog):
 
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='delete-country', description='Удалить страну')
+    @slash_command(name='del-country', description='Удалить страну')
     async def delete_country(self, inter: Interaction,
                              player: Member = SlashOption(
                                  name='игрок',

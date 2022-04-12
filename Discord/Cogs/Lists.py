@@ -26,7 +26,7 @@ class Lists(MyCog):
     
 
     @application_checks.check(MyCog.curators_players_perf)
-    @slash_command(name='inventory', description='Просмотреть инвентарь')
+    @slash_command(name='inv', description='Просмотреть инвентарь')
     async def inventory(
         self, inter: Interaction,
         item_type: str = _ITEM_PARAMETER,
@@ -81,7 +81,7 @@ class Lists(MyCog):
                              for_all_countries, name, count)
     
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='delete-inv-item', description='Удалить предмет из инвентаря')
+    @slash_command(name='del-inv-item', description='Удалить предмет из инвентаря')
     async def delete_inventory_item(
         self, inter: Interaction,
         item_type: str = _ITEM_PARAMETER,

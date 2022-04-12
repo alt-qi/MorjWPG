@@ -194,7 +194,7 @@ class Items(MyCog):
 
 
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='delete-item', description='Удалить предмет', 
+    @slash_command(name='del-item', description='Удалить предмет', 
                    default_permission=False)
     async def delete_item(self, inter: Interaction,
                           item_type: str = _ITEM_PARAMETER,

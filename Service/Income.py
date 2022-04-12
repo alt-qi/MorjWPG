@@ -64,12 +64,12 @@ class Income(Publisher):
             self.timer.start()
     
     def _get_income_time(self):
+        now_datetime = datetime.now(offset)+timedelta(minutes=1)
         self.income_time = database().select_one(
                 'SELECT get_next_income_time(%s) AS income_time',
-                datetime.now(offset).time())['income_time']
+                now_datetime)['income_time']
 
         if self.income_time:
-            now_datetime = datetime.now(offset)
             now_time = time(hour=now_datetime.hour, minute=now_datetime.minute)
             income_datetime = datetime(
                 year=now_datetime.year, 
