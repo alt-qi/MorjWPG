@@ -67,7 +67,7 @@ class Income(Publisher):
         now_datetime = datetime.now(offset)+timedelta(minutes=1)
         self.income_time = database().select_one(
                 'SELECT get_next_income_time(%s) AS income_time',
-                now_datetime)['income_time']
+                now_datetime.time())['income_time']
 
         if self.income_time:
             now_time = time(hour=now_datetime.hour, minute=now_datetime.minute)
