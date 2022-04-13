@@ -9,7 +9,7 @@ from Discord.Cogs.Cog import MyCog
 class Economy(MyCog):
 
     @application_checks.check(MyCog.curators_players_perf)
-    @slash_command(name='balance', description='Узнать свой баланс и доход')
+    @slash_command(name='bal', description='Узнать свой баланс и доход')
     async def get_balance(self, inter: Interaction,
                           player: Member = SlashOption(
                               name='игрок',
