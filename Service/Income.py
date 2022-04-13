@@ -64,10 +64,10 @@ class Income(Publisher):
             self.timer.start()
     
     def _get_income_time(self):
-        now_datetime = datetime.now(offset)+timedelta(minutes=1)
+        now_datetime = datetime.now(offset)
         self.income_time = database().select_one(
                 'SELECT get_next_income_time(%s) AS income_time',
-                now_datetime.time())['income_time']
+                (now_datetime+timedelta(minutes=1)).time())['income_time']
 
         if self.income_time:
             now_time = time(hour=now_datetime.hour, minute=now_datetime.minute)
@@ -80,7 +80,7 @@ class Income(Publisher):
                 tzinfo=offset
             )
             if now_time>self.income_time:
-                income_datetime+timedelta(days=1)
+                income_datetime+=timedelta(days=1)
 
             self.income_time = (income_datetime-now_datetime).seconds
     

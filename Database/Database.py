@@ -46,14 +46,14 @@ class SimpleDataBase(DataBase):
         cur.execute('SELECT * '
                     'FROM information_schema.tables '
                     'WHERE table_name = \'countries\'')
-        if not cur.fetchall:
+        if not cur.fetchall():
             self.init_db(conn, cur)
         
         self.put_conn(conn)
 
     def init_db(self, conn: connection, cur: cursor):
         """Инициализирует базу данных"""
-        with open('DataBase/create_db.sql', 'r') as r:
+        with open('Database/create_db.sql', 'r') as r:
             sql = r.read()
         
         cur.execute(sql)

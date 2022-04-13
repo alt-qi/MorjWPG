@@ -96,7 +96,7 @@ class Lists(MyCog):
                                     for_all_countries, name)
     
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='delete-inv', description='Удалить инвентарь')
+    @slash_command(name='del-inv', description='Удалить инвентарь')
     async def delete_inventory(
         self, inter: Interaction,
         item_type: str = _ITEM_PARAMETER,
