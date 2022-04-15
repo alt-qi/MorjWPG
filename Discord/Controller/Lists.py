@@ -73,8 +73,13 @@ _ITEMS_PARAMTERS = {
     'description': 'Описание',
     'income': 'Доход',
     'features': 'Характеристики',
+    'buyability': 'Способность покупать',
     'saleability': 'Способность продавать',
     'needed_for_purchase': 'Необходимо для покупки'
+}
+_VALUES = {
+    True: 'Можно',
+    False: 'Нельзя'
 }
 def get_list(list: dict[str, dict[str, Any]]):
     list_output = []
@@ -87,12 +92,12 @@ def get_list(list: dict[str, dict[str, Any]]):
         item_list += f"\n**{item}**\n"
 
         for parameter in list[item]:
-            if parameter in ('saleability', 'needed_for_purchase'):
-                if not list[item][parameter]: continue
+            if parameter in ('buyability', 'saleability', 'needed_for_purchase'):
+                if list[item][parameter] == None: continue
                 if parameter == 'needed_for_purchase': # Изменяю необходимое для покупки для вывода пользователю
                     list[item][parameter] = str(list[item][parameter])[1:-1].replace("'", "")
-                elif parameter == 'saleability':
-                    list[item][parameter] = 'Можно'
+                else:
+                    list[item][parameter] = _VALUES[list[item][parameter]]
 
             item_list += f'{_ITEMS_PARAMTERS[parameter]}: {list[item][parameter]}\n'
 

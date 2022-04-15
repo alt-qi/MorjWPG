@@ -8,7 +8,12 @@ from psycopg2.pool import AbstractConnectionPool, SimpleConnectionPool
 import psycopg2.extras
 
 
-class DataBase(ABC):
+class Database(ABC):
+
+    @abstractmethod
+    def init_db(self, conn: connection, cur: cursor):
+        pass
+
     @abstractmethod
     def get_conn(self) -> connection:
         pass
@@ -30,15 +35,15 @@ class DataBase(ABC):
         pass
 
 
-class SimpleDataBase(DataBase):
-    url = os.getenv('DATABASE_URL')
+class SimpleDatabase(Database):
+    url = os.environ['DATABASE_URL']
     pool: AbstractConnectionPool
 
     def __init__(self):
         self.pool = SimpleConnectionPool(1, 20, self.url)
-        self.check_database_exists()
+        self._check_database_exists()
     
-    def check_database_exists(self):
+    def _check_database_exists(self):
         """Создает базу данных если ее нет"""
         conn = self.get_conn()
         cur = conn.cursor()
@@ -104,7 +109,7 @@ class SimpleDataBase(DataBase):
             self.put_conn(conn)
 
 
-db = SimpleDataBase()
+db = SimpleDatabase()
 
-def database() -> DataBase:
+def database() -> Database:
     return db

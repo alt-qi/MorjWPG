@@ -34,6 +34,7 @@ CREATE TABLE builds(
     price item_price,
     description text DEFAULT '',
     income real DEFAULT 0.0,
+    buyability boolean DEFAULT True,
     saleability boolean DEFAULT False,
 
     CONSTRAINT PK_builds_build_id PRIMARY KEY(build_id)
@@ -57,6 +58,7 @@ CREATE TABLE units(
     price item_price,
     description text DEFAULT '',
     features text DEFAULT '',
+    buyability boolean DEFAULT True,
     saleability boolean DEFAULT True,
 
     CONSTRAINT PK_units_unit_id PRIMARY KEY(unit_id)
@@ -118,18 +120,58 @@ CREATE TABLE config(
 -- Создаем функции
 --
 
-CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, saleability boolean, needed_build_name varchar, count int) AS $$
-    SELECT b.name AS build_name, b.price, b.description, b.income, b.saleability, n.name AS needed_build_name, count
+CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, buyability boolean, saleability boolean, needed_build_name varchar, count int) AS $$
+    WITH default_buyability AS (
+        SELECT column_default::boolean
+        FROM information_schema.columns
+        WHERE (table_schema, table_name, column_name) = ('public', 'builds', 'buyability')
+    ),
+    default_saleability AS (
+        SELECT column_default::boolean
+        FROM information_schema.columns
+        WHERE (table_schema, table_name, column_name) = ('public', 'builds', 'saleability')
+    )
+    SELECT b.name AS build_name, b.price, b.description, b.income, 
+           CASE
+               WHEN b.buyability = (SELECT * FROM default_buyability) THEN NULL
+               ELSE b.buyability
+           END AS buyability,
+           CASE
+               WHEN b.saleability = (SELECT * FROM default_saleability) THEN NULL
+               ELSE b.saleability
+           END AS saleability,
+           n.name AS needed_build_name, count
     FROM builds b
     LEFT JOIN builds_needed_for_purchase USING(build_id)
-    LEFT JOIN builds n ON builds_needed_for_purchase.needed_build_id = n.build_id; 
+    LEFT JOIN builds n ON builds_needed_for_purchase.needed_build_id = n.build_id
+    ORDER BY needed_build_name NULLS FIRST;
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, saleability boolean, needed_build_name varchar, count int) AS $$
-    SELECT u.name AS unit_name, u.price, u.description, u.features, u.saleability, n.name AS needed_build_name, count
+CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, buyability boolean, saleability boolean, needed_build_name varchar, count int) AS $$
+    WITH default_buyability AS (
+        SELECT column_default::boolean
+        FROM information_schema.columns
+        WHERE (table_schema, table_name, column_name) = ('public', 'units', 'buyability')
+    ),
+    default_saleability AS (
+        SELECT column_default::boolean
+        FROM information_schema.columns
+        WHERE (table_schema, table_name, column_name) = ('public', 'units', 'saleability')
+    )
+    SELECT u.name AS unit_name, u.price, u.description, u.features, 
+           CASE
+               WHEN u.buyability = (SELECT * FROM default_buyability) THEN NULL
+               ELSE u.buyability
+           END AS buyability,
+           CASE
+               WHEN u.saleability = (SELECT * FROM default_saleability) THEN NULL
+               ELSE u.saleability
+           END AS saleability,
+           n.name AS needed_build_name, count
     FROM units u
     LEFT JOIN units_needed_for_purchase USING(unit_id)
-    LEFT JOIN builds n ON units_needed_for_purchase.needed_build_id = n.build_id;
+    LEFT JOIN builds n ON units_needed_for_purchase.needed_build_id = n.build_id
+    ORDER BY needed_build_name NULLS FIRST;
 $$ LANGUAGE SQL;
 
 

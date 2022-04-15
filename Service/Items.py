@@ -152,6 +152,15 @@ class BuyOrder(Order):
                                item_id: int, count: int):
         if country.len_ != 1:
             raise OperationOnlyForOneCountry
+        
+        cur.execute('SELECT buyability '
+                   f'FROM {item.table_name} '
+                   f'WHERE {item.arguments_name}_id = %s',
+                    (item_id, ))
+        if not cur.fetchone()[0]:
+            self.transact_ability = False
+            self.needed_for_transact['buyability'] = False
+            return
 
         cur.execute(f'SELECT get_needed_price_for_{item.arguments_name}'
                      '(%s, %s, %s) AS money',

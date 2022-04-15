@@ -22,8 +22,10 @@ class Shop(List):
         shop = {}
         item_name = f'{self.item.arguments_name}_name'
 
-        for i in database().select('SELECT * '
-                                  f'FROM get_{self.item.table_name}_shop()'):
+        for i in database().select(
+                'SELECT * '
+               f'FROM get_{self.item.table_name}_shop()'
+        ):
             if i[item_name] in shop:
                 shop[i[item_name]]['needed_for_purchase'][i['needed_build_name']] = i['count']
                 continue

@@ -30,6 +30,12 @@ class Items(MyCog):
             required=False,
             default=None
         ),
+        'buyability': SlashOption(
+            name='возможность-покупки',
+            description='Определяет, могут ли игроки покупать предмет',
+            required=False,
+            default=None
+        ),
         'saleability': SlashOption(
             name='возможность-продажи',
             description=('Определяет, могут ли игроки продавать, '
@@ -44,7 +50,8 @@ class Items(MyCog):
                          '`здание: количество`'),
             required=False,
             default=None
-        )}
+        )
+    }
     
     @application_checks.check(MyCog.curators_perf)
     @slash_command(name='add-build', description='Добавить новое здание', 
@@ -61,6 +68,7 @@ class Items(MyCog):
                 required=False,
                 default=None
             ),
+            buyability: bool = _ADD_PARAMETERS['buyability'],
             saleability: bool = _ADD_PARAMETERS['saleability'],
             needed_for_purchase: str = _ADD_PARAMETERS['needed_for_purchase']
     ):
@@ -70,6 +78,7 @@ class Items(MyCog):
              'price': price,
              'description': description,
              'income': income,
+             'buyability': buyability,
              'saleability': saleability,
              'needed_for_purchase': needed_for_purchase})
 
@@ -89,6 +98,7 @@ class Items(MyCog):
                 required=False,
                 default=None
             ),
+            buyability: bool = _ADD_PARAMETERS['buyability'],
             saleability: bool = _ADD_PARAMETERS['saleability'],
             needed_for_purchase: str = _ADD_PARAMETERS['needed_for_purchase']
     ):
@@ -98,6 +108,7 @@ class Items(MyCog):
              'price': price,
              'description': description,
              'features': features,
+             'buyability': buyability,
              'saleability': saleability,
              'needed_for_purchase': needed_for_purchase})
 
@@ -122,6 +133,12 @@ class Items(MyCog):
         'new_description': SlashOption(
             name='новое-описание',
             description='Новое описание предмета',
+            required=False,
+            default=None
+        ),
+        'new_buyability': SlashOption(
+            name='новая-возможность-покупки',
+            description='Присваивает новое значение возможности покупки',
             required=False,
             default=None
         ),
@@ -155,6 +172,7 @@ class Items(MyCog):
                 required=False,
                 default=None
             ),
+            new_buyability: bool = _UPDATE_PARAMETERS['new_buyability'],
             new_saleability: bool = _UPDATE_PARAMETERS['new_saleability'],
             new_needed_for_purchase: str = _UPDATE_PARAMETERS['new_needed_for_purchase']
     ):
@@ -163,6 +181,7 @@ class Items(MyCog):
                            'price': new_price,
                            'description': new_description,
                            'income': new_income,
+                           'buyability': new_buyability,
                            'saleability': new_saleability,
                            'needed_for_purchase': new_needed_for_purchase})
 
@@ -181,6 +200,7 @@ class Items(MyCog):
                 required=False,
                 default=None
             ),
+            new_buyability: bool = _UPDATE_PARAMETERS['new_buyability'],
             new_saleability: bool = _UPDATE_PARAMETERS['new_saleability'],
             new_needed_for_purchase: str = _UPDATE_PARAMETERS['new_needed_for_purchase']
     ):
@@ -189,6 +209,7 @@ class Items(MyCog):
                            'price': new_price,
                            'description': new_description,
                            'features': new_features,
+                           'buyability': new_buyability,
                            'saleability': new_saleability,
                            'needed_for_purchase': new_needed_for_purchase})
 

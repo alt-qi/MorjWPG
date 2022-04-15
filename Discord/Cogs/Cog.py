@@ -91,6 +91,7 @@ class MyCog(Cog):
 
     @staticmethod
     def check_player(user: Member) -> bool:
+        print(Config().player_role)
         if user.get_role(Config().player_role):
             return True
         else:
