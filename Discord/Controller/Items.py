@@ -167,13 +167,14 @@ async def _get_needed_for_purchase_groups(
         )
 
 _PROPORTIONALLY = '*'
-_GET_NEEDED_FOR_PURCHASES_PATTERN = rf'([{_SHOULD_NOT_BE}{_PROPORTIONALLY}]*)([а-яА-я\w]+):[ ]*(\d)'
+_GET_NEEDED_FOR_PURCHASES_PATTERN = rf'([{_SHOULD_NOT_BE}{_PROPORTIONALLY}]*)([а-яА-я\w ]+):[ ]*(\d+)'
 async def _get_needed_for_purchases(
         inter: Interaction, cog: MyCog,
         needed_for_purchases: str, group_needed_for_purchase: dict[str, Any]
 ):
     needed_for_purchases = regex.findall(_GET_NEEDED_FOR_PURCHASES_PATTERN, needed_for_purchases)
     for needed_for_purchase in needed_for_purchases:
+        print(needed_for_purchase)
         needed_for_purchase_group = {}
         if _SHOULD_NOT_BE in needed_for_purchase[0]:
             needed_for_purchase_group['should_not_be'] = True
