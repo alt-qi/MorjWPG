@@ -239,7 +239,7 @@ CREATE OR REPLACE FUNCTION get_group_build_needed_for_purchase(group_id int) RET
 
         RETURN
             CASE (SELECT should_not_be FROM builds_groups_needed_for_purchase WHERE build_group_id = group_id)
-                WHEN True THEN 'Не '
+                WHEN True THEN 'Нет '
                 ELSE ''
             END ||
             CASE (SELECT type FROM builds_groups_needed_for_purchase WHERE build_group_id = group_id)
@@ -329,7 +329,7 @@ CREATE OR REPLACE FUNCTION get_group_unit_needed_for_purchase(group_id int) RETU
 
         RETURN
             CASE (SELECT should_not_be FROM units_groups_needed_for_purchase WHERE unit_group_id = group_id)
-                WHEN True THEN 'Не '
+                WHEN True THEN 'Нет '
                 ELSE ''
             END ||
             CASE (SELECT type FROM units_groups_needed_for_purchase WHERE unit_group_id = group_id)
