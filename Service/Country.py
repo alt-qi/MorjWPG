@@ -1,8 +1,11 @@
 if __name__ == '__main__':
     import sys; sys.path.append('..')
 
+from Service.default import _ALL
 from Database.Database import database
 
+
+_ALL_COUNTRIES = _ALL
 
 class Country:
     """
@@ -38,6 +41,6 @@ class OneCountry(Country):
         self.where = f'WHERE country_id = {self.id_[0]}'
 
 class AllCountries(Country):
-    len_: int = -1
+    len_: int = _ALL_COUNTRIES
     id_: tuple[int] = None
     where: str = ''

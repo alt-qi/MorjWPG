@@ -18,11 +18,7 @@ class CantTransact(Exception):
         output = []
         for reason in self.reasons:
             if reason == 'builds':
-                builds = []
-                for i in self.reasons['builds']:
-                    builds.append('{}: {}'.format(i, abs(self.reasons['builds'][reason])))
-
-                output.append('Необходимые Здания: ' + ', '.join(builds))
+                output.append(self.reasons[reason][:-2]) 
             elif reason == 'item':
                 output.append('Нехватка предмета: {}'.format(abs(self.reasons['item'])))
             elif reason == 'money':

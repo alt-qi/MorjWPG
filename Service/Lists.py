@@ -26,14 +26,6 @@ class Shop(List):
                 'SELECT * '
                f'FROM get_{self.item.table_name}_shop()'
         ):
-            if i[item_name] in shop:
-                shop[i[item_name]]['needed_for_purchase'][i['needed_build_name']] = i['count']
-                continue
-
-            needed_build_name = i.pop('needed_build_name')
-            count = i.pop('count')
-            if needed_build_name:
-                i['needed_for_purchase'] = {needed_build_name: count}
             shop[i.pop(item_name)] = i
             
         return shop

@@ -94,8 +94,9 @@ def get_list(list: dict[str, dict[str, Any]]):
         for parameter in list[item]:
             if parameter in ('buyability', 'saleability', 'needed_for_purchase'):
                 if list[item][parameter] == None: continue
-                if parameter == 'needed_for_purchase': # Изменяю необходимое для покупки для вывода пользователю
-                    list[item][parameter] = str(list[item][parameter])[1:-1].replace("'", "")
+                if parameter == 'needed_for_purchase': 
+                    # Изменяю необходимое для покупки для вывода пользователю
+                    list[item][parameter] = list[item][parameter][:-2]
                 else:
                     list[item][parameter] = _VALUES[list[item][parameter]]
 

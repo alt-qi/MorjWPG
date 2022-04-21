@@ -5,7 +5,7 @@ from nextcord import ButtonStyle
 
 
 class Pages(View):
-    def __init__(self, user: Member, list: list[Embed], interaction: Interaction, 
+    def __init__(self, user: Member, list: list[Embed], 
                  page_number: int=1, timeout: float=120):
         super().__init__(timeout=timeout)
 

@@ -6,19 +6,6 @@ SET client_encoding = 'UTF8';
 CREATE EXTENSION pg_trgm;
 
 --
--- Удаляем таблицы
---
-
-DROP TABLE IF EXISTS builds CASCADE;
-DROP TABLE IF EXISTS builds_needed_for_purchase CASCADE;
-DROP TABLE IF EXISTS units CASCADE;
-DROP TABLE IF EXISTS units_needed_for_purchase CASCADE;
-DROP TABLE IF EXISTS countries CASCADE;
-DROP TABLE IF EXISTS inventory_builds CASCADE;
-DROP TABLE IF EXISTS inventory_units CASCADE;
-DROP TABLE IF EXISTS income_times CASCADE; 
-
---
 -- Создаем домены
 --
 
@@ -41,15 +28,61 @@ CREATE TABLE builds(
 );
 
 CREATE TABLE builds_needed_for_purchase(
+    build_needed_for_purchase_id int GENERATED ALWAYS AS IDENTITY,
     build_id int,
     needed_build_id int,
-    count int,
+    proportionally_items boolean DEFAULT False,
+    should_not_be boolean DEFAULT False,
+    count int DEFAULT 1,
 
+    CONSTRAINT PK_build_needed_for_purchase_id PRIMARY KEY(build_needed_for_purchase_id),
     CONSTRAINT FK_build_id FOREIGN KEY(build_id) REFERENCES builds(build_id) ON DELETE CASCADE,
-    CONSTRAINT FK_needed_build_id FOREIGN KEY(needed_build_id) REFERENCES builds(build_id) ON DELETE CASCADE,
-    CONSTRAINT build_needed_build_CHK CHECK(build_id <> needed_build_id),
-    CONSTRAINT PK_build_needed_build PRIMARY KEY(build_id, needed_build_id),
+    CONSTRAINT FK_build_needed_build_id FOREIGN KEY(needed_build_id) REFERENCES builds(build_id) ON DELETE CASCADE,
     CONSTRAINT needed_build_count_CHK CHECK(count > 0)
+);
+
+CREATE TYPE group_type AS ENUM ('All', 'Any');
+
+CREATE TABLE builds_groups_needed_for_purchase(
+    build_group_id int GENERATED ALWAYS AS IDENTITY,
+    build_id int,
+    type group_type DEFAULT 'All',
+    should_not_be boolean DEFAULT False,
+
+    CONSTRAINT PK_builds_any_groups_build_any_group_id PRIMARY KEY(build_group_id),
+    CONSTRAINT FK_builds_groups_build_id FOREIGN KEY(build_id) 
+    REFERENCES builds(build_id) ON DELETE CASCADE
+);
+
+CREATE TABLE builds_groups_groups(
+    build_group_id int,
+    included_build_group_id int,
+
+    CONSTRAINT FK_builds_gg_build_group_id FOREIGN KEY(build_group_id)
+    REFERENCES builds_groups_needed_for_purchase(build_group_id)
+    ON DELETE CASCADE,
+    CONSTRAINT FK_builds_gg_included_build_group_id 
+    FOREIGN KEY(included_build_group_id)
+    REFERENCES builds_groups_needed_for_purchase(build_group_id)
+    ON DELETE CASCADE,
+    CONSTRAINT PK_builds_gg 
+    PRIMARY KEY(build_group_id, included_build_group_id)
+);
+
+CREATE TABLE builds_needed_for_purchase_groups(
+    build_group_id int,
+    build_needed_for_purchase_id int,
+
+    CONSTRAINT FK_builds_nfpg_build_group_id 
+    FOREIGN KEY(build_group_id) 
+    REFERENCES builds_groups_needed_for_purchase(build_group_id)
+    ON DELETE CASCADE,
+    CONSTRAINT FK_builds_nfpg_build_needed_for_purchase_id 
+    FOREIGN KEY(build_needed_for_purchase_id)
+    REFERENCES builds_needed_for_purchase(build_needed_for_purchase_id)
+    ON DELETE CASCADE,
+    CONSTRAINT PK_builds_nfpg 
+    PRIMARY KEY(build_group_id, build_needed_for_purchase_id)
 );
 
 CREATE TABLE units(
@@ -65,15 +98,61 @@ CREATE TABLE units(
 );
 
 CREATE TABLE units_needed_for_purchase(
+    unit_needed_for_purchase_id int GENERATED ALWAYS AS IDENTITY,
     unit_id int,
     needed_build_id int,
-    count int,
+    proportionally_items boolean DEFAULT False,
+    should_not_be boolean DEFAULT False,
+    count float DEFAULT 1,
 
+    CONSTRAINT PK_unit_needed_for_purchase_id PRIMARY KEY(unit_needed_for_purchase_id),
     CONSTRAINT FK_unit_id FOREIGN KEY(unit_id) REFERENCES units(unit_id) ON DELETE CASCADE,
-    CONSTRAINT FK_needed_build_id FOREIGN KEY(needed_build_id) REFERENCES builds(build_id) ON DELETE CASCADE,
-    CONSTRAINT PK_unit_needed_build PRIMARY KEY(unit_id, needed_build_id),
-    CONSTRAINT needed_build_count_CHK CHECK(count > 0)
+    CONSTRAINT FK_unit_needed_build_id FOREIGN KEY(needed_build_id) REFERENCES builds(build_id) ON DELETE CASCADE,
+    CONSTRAINT needed_unit_count_CHK CHECK(count > 0)
 );
+
+CREATE TABLE units_groups_needed_for_purchase(
+    unit_group_id int GENERATED ALWAYS AS IDENTITY,
+    unit_id int,
+    type group_type DEFAULT 'All',
+    should_not_be boolean DEFAULT False,
+
+    CONSTRAINT PK_units_any_groups_unit_any_group_id PRIMARY KEY(unit_group_id),
+    CONSTRAINT FK_units_groups_unit_id FOREIGN KEY(unit_id) 
+    REFERENCES units(unit_id) ON DELETE CASCADE
+);
+
+CREATE TABLE units_groups_groups(
+    unit_group_id int,
+    included_unit_group_id int,
+
+    CONSTRAINT FK_units_gg_unit_group_id FOREIGN KEY(unit_group_id)
+    REFERENCES units_groups_needed_for_purchase(unit_group_id)
+    ON DELETE CASCADE,
+    CONSTRAINT FK_units_gg_included_unit_group_id 
+    FOREIGN KEY(included_unit_group_id)
+    REFERENCES units_groups_needed_for_purchase(unit_group_id)
+    ON DELETE CASCADE,
+    CONSTRAINT PK_units_gg 
+    PRIMARY KEY(unit_group_id, included_unit_group_id)
+);
+
+CREATE TABLE units_needed_for_purchase_groups(
+    unit_group_id int,
+    unit_needed_for_purchase_id int,
+
+    CONSTRAINT FK_units_nfpg_unit_group_id 
+    FOREIGN KEY(unit_group_id) 
+    REFERENCES units_groups_needed_for_purchase(unit_group_id)
+    ON DELETE CASCADE,
+    CONSTRAINT FK_units_nfpg_unit_needed_for_purchase_id 
+    FOREIGN KEY(unit_needed_for_purchase_id)
+    REFERENCES units_needed_for_purchase(unit_needed_for_purchase_id)
+    ON DELETE CASCADE,
+    CONSTRAINT PK_units_nfpg 
+    PRIMARY KEY(unit_group_id, unit_needed_for_purchase_id)
+);
+
 
 CREATE TABLE countries(
     country_id int GENERATED ALWAYS AS IDENTITY,
@@ -120,7 +199,68 @@ CREATE TABLE config(
 -- Создаем функции
 --
 
-CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, buyability boolean, saleability boolean, needed_build_name varchar, count int) AS $$
+CREATE OR REPLACE FUNCTION get_build_group_needed_for_purchase(group_id int) RETURNS varchar AS $$
+    DECLARE i varchar;
+    DECLARE output varchar;
+    BEGIN
+        output = '';
+        FOR i IN (
+            SELECT CASE 
+                        WHEN bnfp.should_not_be THEN 'Не должно быть ' 
+                        ELSE '' 
+                   END || b.name || ': ' ||
+                   CASE 
+                        WHEN proportionally_items THEN 'количество имеющихся предметов\*' 
+                        ELSE '' 
+                   END || count || ', '
+            FROM builds_groups_needed_for_purchase bgnfp
+            JOIN builds_needed_for_purchase_groups bnfpg USING(build_group_id)
+            JOIN builds_needed_for_purchase bnfp ON bnfpg.build_needed_for_purchase_id = bnfp.build_needed_for_purchase_id
+            JOIN builds b ON b.build_id = bnfp.needed_build_id
+            WHERE build_group_id = group_id
+        ) LOOP
+            output = output || i;
+        END LOOP;
+
+        RETURN output;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_group_build_needed_for_purchase(group_id int) RETURNS varchar AS $$
+    DECLARE needed_for_purchase varchar;
+    DECLARE i int;
+    DECLARE groups varchar;
+    BEGIN
+        needed_for_purchase = get_build_group_needed_for_purchase(group_id);
+        groups = '';
+        FOR i IN SELECT included_build_group_id FROM builds_groups_groups WHERE build_group_id = group_id LOOP
+            groups = groups || get_group_build_needed_for_purchase(i);
+        END LOOP;
+
+        RETURN
+            CASE (SELECT should_not_be FROM builds_groups_needed_for_purchase WHERE build_group_id = group_id)
+                WHEN True THEN 'Не '
+                ELSE ''
+            END ||
+            CASE (SELECT type FROM builds_groups_needed_for_purchase WHERE build_group_id = group_id)
+                WHEN 'All' THEN 'Все из этого: '
+                WHEN 'Any' THEN 'Что либо из этого: '
+            END || needed_for_purchase || groups;
+    END;
+$$ LANGUAGE plpgsql;    
+
+CREATE OR REPLACE FUNCTION get_build_needed_for_purchase(getting_build_id int) RETURNS varchar AS $$
+    WITH group_id AS (
+        SELECT build_group_id
+        FROM builds_groups_needed_for_purchase
+        WHERE build_id = getting_build_id
+        LIMIT 1
+    )
+    SELECT get_group_build_needed_for_purchase((SELECT build_group_id FROM group_id))
+$$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, buyability boolean, saleability boolean, needed_for_purchase varchar) AS $$
     WITH default_buyability AS (
         SELECT column_default::boolean
         FROM information_schema.columns
@@ -130,6 +270,10 @@ CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, p
         SELECT column_default::boolean
         FROM information_schema.columns
         WHERE (table_schema, table_name, column_name) = ('public', 'builds', 'saleability')
+    ),
+    needed_for_purchase AS (
+        SELECT DISTINCT(build_id), build_group_id
+        FROM builds_groups_needed_for_purchase
     )
     SELECT b.name AS build_name, b.price, b.description, b.income, 
            CASE
@@ -140,14 +284,72 @@ CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, p
                WHEN b.saleability = (SELECT * FROM default_saleability) THEN NULL
                ELSE b.saleability
            END AS saleability,
-           n.name AS needed_build_name, count
+           get_build_needed_for_purchase(b.build_id) AS needed_for_purchase
     FROM builds b
-    LEFT JOIN builds_needed_for_purchase USING(build_id)
-    LEFT JOIN builds n ON builds_needed_for_purchase.needed_build_id = n.build_id
-    ORDER BY needed_build_name NULLS FIRST;
+    ORDER BY needed_for_purchase;
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, buyability boolean, saleability boolean, needed_build_name varchar, count int) AS $$
+CREATE OR REPLACE FUNCTION get_unit_group_needed_for_purchase(group_id int) RETURNS varchar AS $$
+    DECLARE i varchar;
+    DECLARE output varchar;
+    BEGIN
+        output = '';
+        FOR i IN (
+            SELECT CASE 
+                        WHEN unfp.should_not_be THEN 'Не должно быть ' 
+                        ELSE '' 
+                   END || b.name || ': ' ||
+                   CASE 
+                        WHEN proportionally_items THEN 'количество имеющихся предметов\*' 
+                        ELSE '' 
+                   END || count || ', '
+            FROM units_groups_needed_for_purchase ugnfp
+            JOIN units_needed_for_purchase_groups unfpg USING(unit_group_id)
+            JOIN units_needed_for_purchase unfp ON unfpg.unit_needed_for_purchase_id = unfp.unit_needed_for_purchase_id
+            JOIN builds b ON b.build_id = unfp.needed_build_id
+            WHERE unit_group_id = group_id
+        ) LOOP
+            output = output || i;
+        END LOOP;
+
+        RETURN output;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_group_unit_needed_for_purchase(group_id int) RETURNS varchar AS $$
+    DECLARE needed_for_purchase varchar;
+    DECLARE i int;
+    DECLARE groups varchar;
+    BEGIN
+        needed_for_purchase = get_unit_group_needed_for_purchase(group_id);
+        groups = '';
+        FOR i IN SELECT included_unit_group_id FROM units_groups_groups WHERE unit_group_id = group_id LOOP
+            groups = groups || get_group_unit_needed_for_purchase(i);
+        END LOOP;
+
+        RETURN
+            CASE (SELECT should_not_be FROM units_groups_needed_for_purchase WHERE unit_group_id = group_id)
+                WHEN True THEN 'Не '
+                ELSE ''
+            END ||
+            CASE (SELECT type FROM units_groups_needed_for_purchase WHERE unit_group_id = group_id)
+                WHEN 'All' THEN 'Все из этого: '
+                WHEN 'Any' THEN 'Что либо из этого: '
+            END || needed_for_purchase || groups;
+    END;
+$$ LANGUAGE plpgsql;    
+
+CREATE OR REPLACE FUNCTION get_unit_needed_for_purchase(getting_unit_id int) RETURNS varchar AS $$
+    WITH group_id AS (
+        SELECT unit_group_id
+        FROM units_groups_needed_for_purchase
+        WHERE unit_id = getting_unit_id
+        LIMIT 1
+    )
+    SELECT get_group_unit_needed_for_purchase((SELECT unit_group_id FROM group_id))
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, buyability boolean, saleability boolean, needed_for_purchase varchar) AS $$
     WITH default_buyability AS (
         SELECT column_default::boolean
         FROM information_schema.columns
@@ -167,15 +369,14 @@ CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, pri
                WHEN u.saleability = (SELECT * FROM default_saleability) THEN NULL
                ELSE u.saleability
            END AS saleability,
-           n.name AS needed_build_name, count
-    FROM units u
+           get_unit_needed_for_purchase(u.unit_id) AS needed_for_purchase
+        FROM units u
     LEFT JOIN units_needed_for_purchase USING(unit_id)
-    LEFT JOIN builds n ON units_needed_for_purchase.needed_build_id = n.build_id
-    ORDER BY needed_build_name NULLS FIRST;
+    ORDER BY needed_for_purchase;
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_builds_inventory(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, income int) AS $$
+CREATE OR REPLACE FUNCTION get_builds_inventory(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, income real) AS $$
     SELECT name, count, description, income*count AS income
     FROM builds
     JOIN builds_inventory USING(build_id)
@@ -216,34 +417,6 @@ CREATE OR REPLACE FUNCTION get_units_by_name(unit_name varchar) RETURNS TABLE(un
     WHERE name % unit_name
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_needed_builds_for_build(customer_country_id int, buying_build_id int) RETURNS TABLE(needed_build_name varchar, count int) AS $$
-    WITH inventory AS (
-        SELECT build_id, count
-        FROM builds_inventory 
-        WHERE country_id = customer_country_id
-)
-    SELECT n.name, ABS(COALESCE(i.count, 0)-bn.count)
-    FROM builds b
-    JOIN builds_needed_for_purchase bn USING(build_id)
-    LEFT JOIN builds n ON bn.needed_build_id = n.build_id
-    LEFT JOIN inventory AS i ON n.build_id = i.build_id
-    WHERE b.build_id = buying_build_id AND (COALESCE(i.count, 0)-bn.count) < 0;
-$$ LANGUAGE SQL;
-
-CREATE OR REPLACE FUNCTION get_needed_builds_for_unit(customer_country_id int, buying_unit_id int) RETURNS TABLE(needed_build_name varchar, count int) AS $$
-    WITH inventory AS (
-        SELECT build_id, count
-        FROM builds_inventory
-        WHERE country_id = customer_country_id
-)
-    SELECT n.name, ABS(COALESCE(i.count, 0)-un.count)
-    FROM units u
-    JOIN units_needed_for_purchase un USING(unit_id)
-    LEFT JOIN builds n ON un.needed_build_id = n.build_id
-    LEFT JOIN inventory i ON n.build_id = i.build_id
-    WHERE u.unit_id = buying_unit_id AND (COALESCE(i.count, 0)-un.count) < 0;
-$$ LANGUAGE SQL;
-
 
 CREATE OR REPLACE FUNCTION get_needed_price_for_build(customer_country_id int, buying_build_id int, count int) RETURNS int AS $$ 
     SELECT (SELECT money 
@@ -271,7 +444,6 @@ CREATE OR REPLACE FUNCTION get_needed_count_build(seller_country_id int, selling
     SELECT COALESCE(count, 0)-selling_count AS needed_count
     FROM countries
     LEFT JOIN inventory USING(country_id)
-    WHERE country_id = seller_country_id
 $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_needed_count_unit(seller_country_id int, selling_unit_id int, selling_count int) RETURNS int AS $$
@@ -294,20 +466,32 @@ $$ LANGUAGE SQL;
 
 
 CREATE OR REPLACE FUNCTION get_next_income_time(now time) RETURNS time AS $$
-WITH next_today_income_time AS (
+    WITH next_today_income_time AS (
+        SELECT income_time
+        FROM income_times
+        WHERE income_time >= now
+        ORDER BY income_time 
+        LIMIT 1
+    ), next_tomorrow_income_time AS (
+        SELECT income_time
+        FROM income_times
+        ORDER BY income_time
+        LIMIT 1
+    )
     SELECT income_time
     FROM income_times
-    WHERE income_time >= now
-    ORDER BY income_time 
-    LIMIT 1
-), next_tomorrow_income_time AS (
-    SELECT income_time
-    FROM income_times
-    ORDER BY income_time
-    LIMIT 1
-)
-SELECT income_time
-FROM income_times
-WHERE income_time = COALESCE((SELECT income_time FROM next_today_income_time),
-                             (SELECT income_time FROM next_tomorrow_income_time))
+    WHERE income_time = COALESCE((SELECT income_time FROM next_today_income_time),
+                                (SELECT income_time FROM next_tomorrow_income_time))
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION get_build_id_by_name(build_name varchar) RETURNS TABLE(name varchar, id int) AS $$
+    SELECT name, build_id
+    FROM builds
+    WHERE name % build_name
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION get_unit_id_by_name(unit_name varchar) RETURNS TABLE(name varchar, id int) AS $$
+    SELECT name, unit_id
+    FROM units
+    WHERE name % unit_name
 $$ LANGUAGE SQL;

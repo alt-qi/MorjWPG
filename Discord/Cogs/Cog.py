@@ -64,7 +64,7 @@ class MyCog(Cog):
             embed.set_author(name=user.name, icon_url=user.avatar)
             embeds.append(embed)
             
-        view = Pages(inter.user, embeds, inter, page_number)
+        view = Pages(inter.user, embeds, page_number)
         
         page_number -= 1
         await inter.response.send_message(embed=embeds[page_number], view=view)
