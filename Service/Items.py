@@ -67,7 +67,8 @@ class Item(ABC):
                 item_id, item_id
             )
 
-            self._insert_needed_for_purchase_item(item_id, needed_for_purchase)
+            if needed_for_purchase:
+                self._insert_needed_for_purchase_item(item_id, needed_for_purchase)
 
         columns = self._get_update_values(list(parameters.keys()))
         if columns:
