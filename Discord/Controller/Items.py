@@ -28,11 +28,16 @@ async def update_item(
         item_id: int, parameters: dict[str, Any]
 ):
     try:
+        del_needed_for_purchase = False
         item = ItemFabric().get_item(item_type)
         if parameters['needed_for_purchase'] == '-':
-            parameters['needed_for_purchase'] = {}
+            parameters.pop('needed_for_purchase')
+            del_needed_for_purchase = True
 
         item_parameters = await get_parameters(inter, cog, parameters)
+        if del_needed_for_purchase:
+            item_parameters['needed_for_purchase'] = {}
+
         item.update(item_id, item_parameters)
 
         await cog.send(inter, 'Update Item', 'Предмет обновлен')
@@ -174,7 +179,6 @@ async def _get_needed_for_purchases(
 ):
     needed_for_purchases = regex.findall(_GET_NEEDED_FOR_PURCHASES_PATTERN, needed_for_purchases)
     for needed_for_purchase in needed_for_purchases:
-        print(needed_for_purchase)
         needed_for_purchase_group = {}
         if _SHOULD_NOT_BE in needed_for_purchase[0]:
             needed_for_purchase_group['should_not_be'] = True
