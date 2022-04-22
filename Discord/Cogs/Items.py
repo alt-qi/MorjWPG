@@ -46,10 +46,8 @@ class Items(MyCog):
     def get_saleable_items(self, item_type: str):
         self.saleable_items[item_type] = ItemFabric().get_item(item_type).get_saleable_items()
     def get_deletable_items(self, item_type: str):
-        deletable_items = ItemFabric().get_item(item_type).get_all_items()
-        deletable_items['all'] = -1
-
-        self.deletable_items = deletable_items
+        self.deletable_items[item_type] = ItemFabric().get_item(item_type).get_all_items()
+        self.deletable_items[item_type]['all'] = -1
 
 
     @slash_command(name='help', description='Помощь с ботом кураторам')
