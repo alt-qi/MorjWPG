@@ -365,7 +365,7 @@ class NeededForPurchase(Component):
         self.cant_transact_reason+=\
                 f'{build_name}: {needed_build_count if self.should_not_be else needed_build_count*-1}, '
 
-        if needed_build_count >= 0:
+        if (needed_build_count>0.0 if self.should_not_be else needed_build_count>=0.0):
             return True
         
 
@@ -569,7 +569,7 @@ class BuyOrder(Order):
         )
         self.money = cur.fetchone()[0]
         
-        if self.money < 0:
+        if self.money < 0.0:
             self.transact_ability = False
             self.needed_for_transact['money'] = self.money
 
@@ -634,7 +634,7 @@ class SellOrder(Order):
              (country_seller.id_[0], item_id, count)
         )
         self.new_seller_count = cur.fetchone()[0]
-        if self.new_seller_count < 0:
+        if self.new_seller_count < 0.0:
             self.transact_ability = False
             self.needed_for_transact['item'] = self.new_seller_count
 
@@ -645,7 +645,7 @@ class SellOrder(Order):
                      (country_customer.id_[0], price))
 
         self.new_customer_money = cur.fetchone()[0]
-        if self.new_customer_money < 0:
+        if self.new_customer_money < 0.0:
             self.transact_ability = False
             self.needed_for_transact['money'] = self.new_customer_money
 
@@ -657,7 +657,7 @@ class SellOrder(Order):
         item_inventory = f'{item.table_name}_inventory'
         id_ = f'{item.arguments_name}_id'
         
-        if self.new_seller_count > 0:
+        if self.new_seller_count > 0.0:
             cur.execute(f'UPDATE {item_inventory} '
                         f'SET count = %s '
                         f'WHERE country_id = %s AND {id_} = %s',

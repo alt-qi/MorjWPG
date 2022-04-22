@@ -172,7 +172,7 @@ async def _get_needed_for_purchase_groups(
         )
 
 _PROPORTIONALLY = '*'
-_GET_NEEDED_FOR_PURCHASES_PATTERN = rf'([{_SHOULD_NOT_BE}{_PROPORTIONALLY}]*)([а-яА-я\w ]+):[ ]*(\d+)'
+_GET_NEEDED_FOR_PURCHASES_PATTERN = rf'([{_SHOULD_NOT_BE}{_PROPORTIONALLY}]*)([а-яА-я\w ]+):[ ]*([+-]?([0-9]*[.])?[0-9]+)'
 async def _get_needed_for_purchases(
         inter: Interaction, cog: MyCog,
         needed_for_purchases: str, group_needed_for_purchase: dict[str, Any]
@@ -188,7 +188,7 @@ async def _get_needed_for_purchases(
         build_id = await get_item_id(inter, cog, Build(), needed_for_purchase[1])
         needed_for_purchase_group['needed_build_id'] = build_id
 
-        count = int(needed_for_purchase[2])
+        count = float(needed_for_purchase[2])
         needed_for_purchase_group['count'] = count
 
         group_needed_for_purchase['needed_for_purchase'].append(needed_for_purchase_group)

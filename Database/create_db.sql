@@ -33,7 +33,7 @@ CREATE TABLE builds_needed_for_purchase(
     needed_build_id int,
     proportionally_items boolean DEFAULT False,
     should_not_be boolean DEFAULT False,
-    count int DEFAULT 1,
+    count float DEFAULT 1.0,
 
     CONSTRAINT PK_build_needed_for_purchase_id PRIMARY KEY(build_needed_for_purchase_id),
     CONSTRAINT FK_build_id FOREIGN KEY(build_id) REFERENCES builds(build_id) ON DELETE CASCADE,
@@ -103,7 +103,7 @@ CREATE TABLE units_needed_for_purchase(
     needed_build_id int,
     proportionally_items boolean DEFAULT False,
     should_not_be boolean DEFAULT False,
-    count float DEFAULT 1,
+    count float DEFAULT 1.0,
 
     CONSTRAINT PK_unit_needed_for_purchase_id PRIMARY KEY(unit_needed_for_purchase_id),
     CONSTRAINT FK_unit_id FOREIGN KEY(unit_id) REFERENCES units(unit_id) ON DELETE CASCADE,
@@ -418,7 +418,7 @@ CREATE OR REPLACE FUNCTION get_units_by_name(unit_name varchar) RETURNS TABLE(un
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_needed_price_for_build(customer_country_id int, buying_build_id int, count int) RETURNS int AS $$ 
+CREATE OR REPLACE FUNCTION get_needed_price_for_build(customer_country_id int, buying_build_id int, count int) RETURNS float AS $$ 
     SELECT (SELECT money 
             FROM countries 
             WHERE country_id = customer_country_id)-price*count AS needed_money
@@ -426,7 +426,7 @@ CREATE OR REPLACE FUNCTION get_needed_price_for_build(customer_country_id int, b
     WHERE build_id = buying_build_id
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_needed_price_for_unit(customer_country_id int, buying_unit_id int, count int) RETURNS int AS $$
+CREATE OR REPLACE FUNCTION get_needed_price_for_unit(customer_country_id int, buying_unit_id int, count int) RETURNS float AS $$
     SELECT (SELECT money 
             FROM countries
             WHERE country_id = customer_country_id)-price*count AS needed_money
@@ -435,7 +435,7 @@ CREATE OR REPLACE FUNCTION get_needed_price_for_unit(customer_country_id int, bu
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_needed_count_build(seller_country_id int, selling_build_id int, selling_count int) RETURNS int AS $$
+CREATE OR REPLACE FUNCTION get_needed_count_build(seller_country_id int, selling_build_id int, selling_count float) RETURNS int AS $$
     WITH inventory AS (
         SELECT country_id, count
         FROM builds_inventory
@@ -446,7 +446,7 @@ CREATE OR REPLACE FUNCTION get_needed_count_build(seller_country_id int, selling
     LEFT JOIN inventory USING(country_id)
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_needed_count_unit(seller_country_id int, selling_unit_id int, selling_count int) RETURNS int AS $$
+CREATE OR REPLACE FUNCTION get_needed_count_unit(seller_country_id int, selling_unit_id int, selling_count float) RETURNS int AS $$
     WITH inventory AS (
         SELECT country_id, count
         FROM units_inventory
