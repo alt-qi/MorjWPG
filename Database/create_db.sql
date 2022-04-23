@@ -18,6 +18,7 @@ CREATE DOMAIN item_price AS real DEFAULT 0.1 NOT NULL CHECK(VALUE>0);
 CREATE TABLE builds(
     build_id int GENERATED ALWAYS AS IDENTITY,
     name varchar(128) UNIQUE NOT NULL,
+    group_item varchar(128),
     price item_price,
     description text DEFAULT '',
     income real DEFAULT 0.0,
@@ -88,6 +89,7 @@ CREATE TABLE builds_needed_for_purchase_groups(
 CREATE TABLE units(
     unit_id int GENERATED ALWAYS AS IDENTITY,
     name varchar(128) UNIQUE NOT NULL,
+    group_item varchar(128),
     price item_price,
     description text DEFAULT '',
     features text DEFAULT '',
@@ -261,7 +263,7 @@ CREATE OR REPLACE FUNCTION get_build_needed_for_purchase(getting_build_id int) R
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, price item_price, description text, income real, buyability boolean, saleability boolean, needed_for_purchase varchar) AS $$
+CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, group_item varchar, price item_price, description text, income real, buyability boolean, saleability boolean, needed_for_purchase varchar) AS $$
     WITH default_buyability AS (
         SELECT column_default::boolean
         FROM information_schema.columns
@@ -276,7 +278,7 @@ CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, p
         SELECT DISTINCT(build_id), build_group_id
         FROM builds_groups_needed_for_purchase
     )
-    SELECT b.name AS build_name, b.price, b.description, b.income, 
+    SELECT b.name AS build_name, b.group_item, b.price, b.description, b.income, 
            CASE
                WHEN b.buyability = (SELECT * FROM default_buyability) THEN NULL
                ELSE b.buyability
@@ -287,7 +289,7 @@ CREATE OR REPLACE FUNCTION get_builds_shop() RETURNS TABLE(build_name varchar, p
            END AS saleability,
            get_build_needed_for_purchase(b.build_id) AS needed_for_purchase
     FROM builds b
-    ORDER BY needed_for_purchase;
+    ORDER BY group_item NULLS FIRST;
 $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_unit_group_needed_for_purchase(group_id int) RETURNS varchar AS $$
@@ -350,7 +352,7 @@ CREATE OR REPLACE FUNCTION get_unit_needed_for_purchase(getting_unit_id int) RET
     SELECT get_group_unit_needed_for_purchase((SELECT unit_group_id FROM group_id))
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, price item_price, description text, features text, buyability boolean, saleability boolean, needed_for_purchase varchar) AS $$
+CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, group_item varchar, price item_price, description text, features text, buyability boolean, saleability boolean, needed_for_purchase varchar) AS $$
     WITH default_buyability AS (
         SELECT column_default::boolean
         FROM information_schema.columns
@@ -361,7 +363,7 @@ CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, pri
         FROM information_schema.columns
         WHERE (table_schema, table_name, column_name) = ('public', 'units', 'saleability')
     )
-    SELECT u.name AS unit_name, u.price, u.description, u.features, 
+    SELECT u.name AS unit_name, u.group_item, u.price, u.description, u.features, 
            CASE
                WHEN u.buyability = (SELECT * FROM default_buyability) THEN NULL
                ELSE u.buyability
@@ -373,22 +375,24 @@ CREATE OR REPLACE FUNCTION get_units_shop() RETURNS TABLE(unit_name varchar, pri
            get_unit_needed_for_purchase(u.unit_id) AS needed_for_purchase
         FROM units u
     LEFT JOIN units_needed_for_purchase USING(unit_id)
-    ORDER BY needed_for_purchase;
+    ORDER BY group_item NULLS FIRST;
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_builds_inventory(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, income real) AS $$
-    SELECT name, count, description, income*count AS income
+CREATE OR REPLACE FUNCTION get_builds_inventory(getting_country_id int) RETURNS TABLE(name varchar, group_item varchar, count int, description text, income real) AS $$
+    SELECT name, group_item, count, description, income*count AS income
     FROM builds
     JOIN builds_inventory USING(build_id)
     WHERE country_id = getting_country_id
+    ORDER BY group_item NULLS FIRST
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION get_units_inventory(getting_country_id int) RETURNS TABLE(name varchar, count int, description text, features text) AS $$
-    SELECT name, count, description, features
+CREATE OR REPLACE FUNCTION get_units_inventory(getting_country_id int) RETURNS TABLE(name varchar, group_item varchar, count int, description text, features text) AS $$
+    SELECT name, group_item, count, description, features
     FROM units
     JOIN units_inventory USING(unit_id)
     WHERE country_id = getting_country_id
+    ORDER BY group_item NULLS FIRST
 $$ LANGUAGE SQL;
 
 

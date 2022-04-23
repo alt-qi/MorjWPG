@@ -7,54 +7,58 @@ from nextcord import Interaction, Member
 from Service.Items import Item, Build, ItemFabric
 from Service.Country import OneCountry
 from Controller.exceptions import NoItemsThatName
+from Discord.Cogs.Config import list_items
 from Discord.Cogs.Cog import MyCog
 
 
+def update_list_items(func):
+    async def decorator(*args, **kwargs):
+        try:
+            await func(*args, **kwargs)
+        finally:
+            list_items().get_all_types_items()
+
+    return decorator
+
+@update_list_items
 async def create_item(
         inter: Interaction, cog: MyCog, 
         item_type: str, parameters: dict[str, Any]
 ):
-    try:
-        item = ItemFabric().get_item(item_type)
-        item_parameters = await get_parameters(inter, cog, parameters)
+    item = ItemFabric().get_item(item_type)
+    item_parameters = await get_parameters(inter, cog, parameters)
         
-        item.insert(item_parameters)
-        await cog.send(inter, 'Create Item', 'Предмет создан')
-    finally:
-        cog.get_all_items()
+    item.insert(item_parameters)
+    await cog.send(inter, 'Create Item', 'Предмет создан')
 
+@update_list_items
 async def update_item(
         inter: Interaction, cog: MyCog, item_type: str, 
         item_id: int, parameters: dict[str, Any]
 ):
-    try:
-        del_needed_for_purchase = False
-        item = ItemFabric().get_item(item_type)
-        if parameters['needed_for_purchase'] == '-':
-            parameters.pop('needed_for_purchase')
-            del_needed_for_purchase = True
+    del_needed_for_purchase = False
+    item = ItemFabric().get_item(item_type)
+    if parameters['needed_for_purchase'] == '-':
+        parameters.pop('needed_for_purchase')
+        del_needed_for_purchase = True
 
-        item_parameters = await get_parameters(inter, cog, parameters)
-        if del_needed_for_purchase:
-            item_parameters['needed_for_purchase'] = {}
+    item_parameters = await get_parameters(inter, cog, parameters)
+    if del_needed_for_purchase:
+        item_parameters['needed_for_purchase'] = {}
 
-        item.update(item_id, item_parameters)
+    item.update(item_id, item_parameters)
 
-        await cog.send(inter, 'Update Item', 'Предмет обновлен')
-    finally:
-        cog.get_all_items()
+    await cog.send(inter, 'Update Item', 'Предмет обновлен')
 
+@update_list_items
 async def delete_item(
         inter: Interaction, cog: MyCog, 
         item_type: str, item_id: int
 ):
-    try:
-        item = ItemFabric().get_item(item_type)
-        item.delete(item_id)
+    item = ItemFabric().get_item(item_type)
+    item.delete(item_id)
     
-        await cog.send(inter, 'Delete Item', 'Предмет удален')
-    finally:
-        cog.get_all_items()
+    await cog.send(inter, 'Delete Item', 'Предмет удален')
 
 
 async def buy_item(

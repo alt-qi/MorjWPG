@@ -8,7 +8,7 @@ from psycopg2.pool import AbstractConnectionPool, SimpleConnectionPool
 import psycopg2.extras
 
 
-_CURENT_DATABASE_VERSION = 1.0
+_CURENT_DATABASE_VERSION = 1.1
 class Database(ABC):
 
     @abstractmethod
@@ -104,7 +104,13 @@ class SimpleDatabase(Database):
                 sql = r.read()
 
             cur.execute(sql)
-            conn.commit()
+
+        cur.execute(
+            'UPDATE config '
+            'SET database_version = %s',
+            (_CURENT_DATABASE_VERSION, )
+        )
+        conn.commit()
 
     def _get_range_versions(self, database_version: float):
         for version in range(int(database_version*10+1), int(_CURENT_DATABASE_VERSION*10+1)):

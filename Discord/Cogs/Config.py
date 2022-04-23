@@ -5,11 +5,11 @@ from abc import ABC, abstractmethod, abstractproperty
 from nextcord import Interaction, Embed, Member, slash_command, \
                      SlashOption, Role
 from nextcord.abc import GuildChannel
-from nextcord.channel import TextChannel
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Bot, Cog
 
 from Discord.Cogs.exceptions import IsntAdministrator
+from Service.Items import ItemFabric
 from Database.Database import database
 
 
@@ -175,6 +175,64 @@ class CogConfig(Cog):
         Config().set_country_prefix(prefix)
 
         await self.send(inter, 'Set Country Prefix', 'Префикс для стран присвоен')
+
+class AbstractListItems(ABC):
+    items: dict[str, Any]
+    buyable_items: dict[str, Any]
+    saleable_items: dict[str, Any]
+    deletable_items: dict[str, Any]
+
+    @abstractmethod
+    def get_all_types_items(self):
+        pass
+
+    @abstractmethod
+    def get_same_items(self, items: dict[str, int], name: str) -> list[str]:
+        pass
+
+class ListItems(AbstractListItems):
+    items: dict[str, Any]
+    buyable_items: dict[str, Any]
+    saleable_items: dict[str, Any]
+    deletable_items: dict[str, Any]
+
+    def __init__(self):
+        self.items = {}
+        self.buyable_items = {}
+        self.saleable_items = {}
+        self.deletable_items = {}
+
+        self.get_all_types_items()
+
+    def get_all_types_items(self):
+        for item in ('builds', 'units'):
+            self.get_items(item)
+            self.get_buyable_items(item)
+            self.get_saleable_items(item)
+            self.get_deletable_items(item)
+
+    def get_items(self, item_type: str):
+        self.items[item_type] = ItemFabric().get_item(item_type).get_all_items()
+    def get_buyable_items(self, item_type: str):
+        self.buyable_items[item_type] = ItemFabric().get_item(item_type).get_buyable_items()
+    def get_saleable_items(self, item_type: str):
+        self.saleable_items[item_type] = ItemFabric().get_item(item_type).get_saleable_items()
+    def get_deletable_items(self, item_type: str):
+        self.deletable_items[item_type] = ItemFabric().get_item(item_type).get_all_items()
+        self.deletable_items[item_type]['all'] = -1
+
+    def get_same_items(self, items: dict[str, int], name: str) -> list[str]:
+        output = []
+        name = name.lower()
+        for item in items.keys():
+            if item.lower().startswith(name):
+                output.append(item)
+
+        return output
+
+v_list_items = ListItems()
+def list_items() -> AbstractListItems:
+    return v_list_items
 
 
 def setup(bot: Bot):

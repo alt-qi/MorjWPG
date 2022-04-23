@@ -13,8 +13,10 @@ from Discord.Controller.Items import get_item_id
 from Discord.Cogs.exceptions import IsntRuler
 
 
-async def get_shop(inter: Interaction, cog: MyCog, 
-                   item_type: str, page: int=1):
+async def get_shop(
+        inter: Interaction, cog: MyCog, 
+        item_type: str, page: int=1
+):
     shop = ShopFabric().get_shop(item_type)
 
     shop = shop.get_shop()
@@ -23,8 +25,10 @@ async def get_shop(inter: Interaction, cog: MyCog,
     await cog.page(inter, 'Shop', inter.user, shop, page)
 
 
-async def get_inventory(inter: Interaction, cog: MyCog,
-                        item_type: str, user: Member, page: int=1):
+async def get_inventory(
+        inter: Interaction, cog: MyCog,
+        item_type: str, user: Member, page: int=1
+):
     user = await cog.get_player(inter, user)
     country = OneCountry(cog.get_country_name(user))
     inventory = InventoryFabric().get_inventory(country, item_type)
@@ -34,31 +38,33 @@ async def get_inventory(inter: Interaction, cog: MyCog,
 
     await cog.page(inter, 'Inventory', user, inventory, page)
 
-async def edit_inventory(inter: Interaction, cog: MyCog, item_type: str, 
-                         user: Member, for_all_countries: bool, 
-                         item_name: str, count: int):
+async def edit_inventory(
+        inter: Interaction, cog: MyCog, item_type: str, 
+        user: Member, for_all_countries: bool, 
+        item_id: int, count: int
+):
     country = await get_country_parameters(inter, cog, user, for_all_countries)
-    item = ItemFabric().get_item(item_type)
     inventory = InventoryFabric().get_inventory(country, item_type)
 
-    item_id = await get_item_id(inter, cog, item, item_name)
     inventory.edit_inventory(item_id, count)
 
     await cog.send(inter, 'Edit Inventory', 'Инвентарь был изменен')
 
-async def delete_item_inventory(inter: Interaction, cog: MyCog, item_type: str,
-                                user: Member, for_all_countries: bool, item_name: str):
+async def delete_item_inventory(
+        inter: Interaction, cog: MyCog, item_type: str,
+        user: Member, for_all_countries: bool, item_id: int
+):
     country = await get_country_parameters(inter, cog, user, for_all_countries)
-    item = ItemFabric().get_item(item_type)
     inventory = InventoryFabric().get_inventory(country, item_type)
 
-    item_id = await get_item_id(inter, cog, item, item_name)
     inventory.delete_inventory_item(item_id)
 
     await cog.send(inter, 'Delete Item Inventory', 'Предмет удален из инвентаря')
 
-async def delete_inventory(inter: Interaction, cog: MyCog, item_type: str,
-                           user: Member, for_all_countries: bool):
+async def delete_inventory(
+        inter: Interaction, cog: MyCog, item_type: str,
+        user: Member, for_all_countries: bool
+):
     country = await get_country_parameters(inter, cog, user, for_all_countries)
     inventory = InventoryFabric().get_inventory(country, item_type)
 
@@ -85,22 +91,18 @@ def get_list(list: dict[str, dict[str, Any]]):
     list_output = []
     
     item_list = ''
+    exist_groups = []
+
     count = 0
     step = 5
     for item in list:
         count+=1
-        item_list += f"\n**{item}**\n"
+        if list[item]['group_item'] and not list[item]['group_item'] in exist_groups:
+            exist_groups.append(list[item]['group_item'])
+            item_list+=f"\n> **{list[item]['group_item']}**\n"
+        list[item].pop('group_item')
 
-        for parameter in list[item]:
-            if parameter in ('buyability', 'saleability', 'needed_for_purchase'):
-                if list[item][parameter] == None: continue
-                if parameter == 'needed_for_purchase': 
-                    # Изменяю необходимое для покупки для вывода пользователю
-                    list[item][parameter] = list[item][parameter][:-2]
-                else:
-                    list[item][parameter] = _VALUES[list[item][parameter]]
-
-            item_list += f'{_ITEMS_PARAMTERS[parameter]}: {list[item][parameter]}\n'
+        item_list+=get_item_parameters(item, list[item])
 
         if count%step == 0 or count == len(list):
             list_output.append(item_list)
@@ -108,6 +110,22 @@ def get_list(list: dict[str, dict[str, Any]]):
             item_list = ''
     
     return list_output
+
+def get_item_parameters(item_name: str, parameters: dict[str, Any]) -> str:
+    item = f"\n**{item_name}**\n"
+
+    for parameter in parameters:
+        if parameter in ('buyability', 'saleability', 'needed_for_purchase'):
+            if parameters[parameter] == None: continue
+            if parameter == 'needed_for_purchase': 
+                # Изменяю необходимое для покупки для вывода пользователю
+                parameters[parameter] = parameters[parameter][:-2]
+            else:
+                parameters[parameter] = _VALUES[parameters[parameter]]
+
+        item += f'{_ITEMS_PARAMTERS[parameter]}: {parameters[parameter]}\n'
+
+    return item
 
 async def get_country_parameters(inter: Interaction, cog: MyCog, 
                                  user: Member, for_all_countries: bool) -> Country:

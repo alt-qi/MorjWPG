@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any
 
 from nextcord import Member, Interaction, slash_command, SlashOption
@@ -6,10 +7,10 @@ from nextcord.ext import application_checks
 from nextcord.ext.commands import Bot
 
 from Discord.Cogs.View import Pages
+from Discord.Cogs.Config import list_items
 from Discord.Controller.Items import create_item, sell_item, update_item, \
                                      delete_item, buy_item
 from Discord.Cogs.Cog import MyCog
-from Service.Items import ItemFabric
 
 
 _ITEM_PARAMETER = SlashOption(
@@ -17,38 +18,7 @@ _ITEM_PARAMETER = SlashOption(
     description='Определяет тип предмета',
     choices={'здание': 'build', 'юнит': 'unit'}
 )
-class Items(MyCog):
-    items: dict[str, Any]
-    buyable_items: dict[str, Any]
-    saleable_items: dict[str, Any]
-    deletable_items: dict[str, Any]
-
-    def __init__(self, bot: Bot):
-        super().__init__(bot)
-        self.items = {}
-        self.buyable_items = {}
-        self.saleable_items = {}
-        self.deletable_items = {}
-
-        self.get_all_items()
-        
-    def get_all_items(self):
-        for item in ('builds', 'units'):
-            self.get_items(item)
-            self.get_buyable_items(item)
-            self.get_saleable_items(item)
-            self.get_deletable_items(item)
-
-    def get_items(self, item_type: str):
-        self.items[item_type] = ItemFabric().get_item(item_type).get_all_items()
-    def get_buyable_items(self, item_type: str):
-        self.buyable_items[item_type] = ItemFabric().get_item(item_type).get_buyable_items()
-    def get_saleable_items(self, item_type: str):
-        self.saleable_items[item_type] = ItemFabric().get_item(item_type).get_saleable_items()
-    def get_deletable_items(self, item_type: str):
-        self.deletable_items[item_type] = ItemFabric().get_item(item_type).get_all_items()
-        self.deletable_items[item_type]['all'] = -1
-
+class CogItems(MyCog):
 
     @slash_command(name='help', description='Помощь с ботом кураторам')
     async def help(self, inter: Interaction):
@@ -108,6 +78,12 @@ class Items(MyCog):
             name='цена',
             description='Цена за которую будет продаваться предмет'
         ),
+        'group': SlashOption(
+            name='группа',
+            description='Группа в которой будет предмет и выводится в ней',
+            required=False,
+            default=None
+        ),
         'description': SlashOption(
             name='описание',
             description='Описание, которое будет пояснять игроку о предмете',
@@ -137,12 +113,12 @@ class Items(MyCog):
     }
     
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='add-build', description='Добавить новое здание', 
-                   default_permission=False)
+    @slash_command(name='add-build', description='Добавить новое здание') 
     async def add_build(
             self, inter: Interaction,
             name: str = _ADD_PARAMETERS['name'],
             price: float = _ADD_PARAMETERS['price'],
+            group: str = _ADD_PARAMETERS['group'],
             description: str = _ADD_PARAMETERS['description'],
             income: float = SlashOption(
                 name='доход',
@@ -159,19 +135,22 @@ class Items(MyCog):
             inter, self, 'build',
             {'name': name,
              'price': price,
+             'group_item': group,
              'description': description,
              'income': income,
              'buyability': buyability,
              'saleability': saleability,
-             'needed_for_purchase': needed_for_purchase})
+             'needed_for_purchase': needed_for_purchase}
+        )
+        
 
     @application_checks.check(MyCog.curators_perf)
-    @slash_command(name='add-unit', description='Добавить нового юнита', 
-                   default_permission=False)
+    @slash_command(name='add-unit', description='Добавить нового юнита')
     async def add_unit(
             self, inter: Interaction,
             name: str = _ADD_PARAMETERS['name'],
             price: float = _ADD_PARAMETERS['price'],
+            group: str = _ADD_PARAMETERS['group'],
             description: str = _ADD_PARAMETERS['description'],
             features: str = SlashOption(
                 name='характеристики',
@@ -189,11 +168,13 @@ class Items(MyCog):
             inter, self, 'unit',
             {'name': name,
              'price': price,
+             'group_item': group,
              'description': description,
              'features': features,
              'buyability': buyability,
              'saleability': saleability,
-             'needed_for_purchase': needed_for_purchase})
+             'needed_for_purchase': needed_for_purchase}
+        )
 
 
     _UPDATE_PARAMETERS = {
@@ -210,6 +191,12 @@ class Items(MyCog):
         'new_price': SlashOption(
             name='новая-цена',
             description='Новая цена предмета',
+            required=False,
+            default=None
+        ),
+        'new_group': SlashOption(
+            name='новая-группа',
+            description='Новая группа в которой будет предмет',
             required=False,
             default=None
         ),
@@ -248,6 +235,7 @@ class Items(MyCog):
             name: str = _UPDATE_PARAMETERS['name'],
             new_name: str = _UPDATE_PARAMETERS['new_name'],
             new_price: float = _UPDATE_PARAMETERS['new_price'],
+            new_group: str = _UPDATE_PARAMETERS['new_group'],
             new_description: str = _UPDATE_PARAMETERS['new_description'],
             new_income: str = SlashOption(
                 name='новый-доход',
@@ -260,9 +248,10 @@ class Items(MyCog):
             new_needed_for_purchase: str = _UPDATE_PARAMETERS['new_needed_for_purchase']
     ):
         await update_item(
-                inter, self, 'build', self.items['builds'][name],
+                inter, self, 'build', list_items().items['builds'][name],
                 {'name': new_name,
                  'price': new_price,
+                 'group_item': new_group,
                  'description': new_description,
                  'income': new_income,
                  'buyability': new_buyability,
@@ -278,6 +267,7 @@ class Items(MyCog):
             name: str = _UPDATE_PARAMETERS['name'],
             new_name: str = _UPDATE_PARAMETERS['new_name'],
             new_price: float = _UPDATE_PARAMETERS['new_price'],
+            new_group: str = _UPDATE_PARAMETERS['new_group'],
             new_description: str = _UPDATE_PARAMETERS['new_description'],
             new_features: str = SlashOption(
                 name='новые-характеристики',
@@ -290,9 +280,10 @@ class Items(MyCog):
             new_needed_for_purchase: str = _UPDATE_PARAMETERS['new_needed_for_purchase']
     ):
         await update_item(
-                inter, self, 'unit', self.items['units'][name],
+                inter, self, 'unit', list_items().items['units'][name],
                 {'name': new_name,
                  'price': new_price,
+                 'group_item': new_group,
                  'description': new_description,
                  'features': new_features,
                  'buyability': new_buyability,
@@ -303,12 +294,12 @@ class Items(MyCog):
     @update_build.on_autocomplete('name')
     async def update_build_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-                list(self.items['builds'].keys())
+                list_items().get_same_items(list_items().items['builds'], name)
         )
     @update_unit.on_autocomplete('name')
     async def update_unit_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-                list(self.items['units'].keys())
+                list_items().get_same_items(list_items().items['units'], name)
         )
 
     _DELETE_PARAMETERS = {
@@ -323,24 +314,24 @@ class Items(MyCog):
     async def delete_build(self, inter: Interaction,
                            name: str = _DELETE_PARAMETERS['name']
     ):
-        await delete_item(inter, self, 'build', self.deletable_items['builds'][name])
+        await delete_item(inter, self, 'build', list_items().deletable_items['builds'][name])
 
     @application_checks.check(MyCog.curators_perf)
     @slash_command(name='del-unit', description='Удалить юнита')
     async def delete_unit(self, inter: Interaction,
                           name: str = _DELETE_PARAMETERS['name']
     ):
-        await delete_item(inter, self, 'unit', self.deletable_items['units'][name])
+        await delete_item(inter, self, 'unit', list_items().deletable_items['units'][name])
 
     @delete_build.on_autocomplete('name')
     async def delete_build_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-                list(self.deletable_items['builds'].keys())
+                list_items().get_same_items(list_items().deletable_items['builds'], name)
         )
     @delete_unit.on_autocomplete('name')
     async def delete_unit_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-                list(self.deletable_items['units'].keys())
+                list_items().get_same_items(list_items().deletable_items['units'], name)
         )
 
     _BUY_PARAMETERS = {
@@ -364,7 +355,7 @@ class Items(MyCog):
     ):
         await buy_item(
                 inter, self, 'build', inter.user,
-                self.buyable_items['builds'][name], count
+                list_items().buyable_items['builds'][name], count
         )
 
     @application_checks.check(MyCog.players_perf)
@@ -376,18 +367,18 @@ class Items(MyCog):
     ):
         await buy_item(
                 inter, self, 'unit', inter.user,
-                self.buyable_items['units'][name], count
+                list_items().buyable_items['units'][name], count
         )
 
     @buy_build.on_autocomplete('name')
     async def buy_build_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-            list(self.buyable_items['builds'].keys())
+            list_items().get_same_items(list_items().buyable_items['builds'], name)
         )
     @buy_unit.on_autocomplete('name')
     async def buy_unit_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-            list(self.buyable_items['units'].keys())
+            list_items().get_same_items(list_items().buyable_items['units'], name)
         )
 
     _SELL_PARAMETERS = {
@@ -421,7 +412,7 @@ class Items(MyCog):
             await sell_item(
                     inter, self, 'build', 
                     inter.user, customer, 
-                    name, self.saleable_items['builds'][name], 
+                    name, list_items().saleable_items['builds'][name], 
                     count, price
             )
 
@@ -438,22 +429,21 @@ class Items(MyCog):
             await sell_item(
                     inter, self, 'unit', 
                     inter.user, customer, 
-                    name, self.saleable_items['units'][name], 
+                    name, list_items().saleable_items['units'][name], 
                     count, price
             )
 
     @sell_build.on_autocomplete('name')
     async def sell_build_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-                list(self.saleable_items['builds'].keys())
+                list_items().get_same_items(list_items().saleable_items['builds'], name)
         )
     @sell_unit.on_autocomplete('name')
     async def sell_unit_autocomplete(self, inter: Interaction, name: str):
         await inter.response.send_autocomplete(
-                list(self.saleable_items['units'].keys())
+                list_items().get_same_items(list_items().saleable_items['units'], name)
         )
 
 
-
 def setup(bot: Bot):
-    bot.add_cog(Items(bot))
+    bot.add_cog(CogItems(bot))
