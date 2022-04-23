@@ -55,7 +55,8 @@ class ConcreteConfig:
     def _get_info(self, column: str) -> Any|None:
         if data := database().select_one(
             f'SELECT {column} '
-             'FROM config'):
+             'FROM config'
+        ):
              return data[column]
 
     def _get_id(self, column: str) -> int|None:
@@ -89,20 +90,12 @@ class ConcreteConfig:
         self._change_config(prefix, 'country_prefix')
         
     def _change_config(self, value, column: str):
-        if any((self.curator_role, self.player_role, 
-                self.publisher_channel, self.country_prefix)):
-            database().insert(
-                'UPDATE config '
-               f'SET {column} = %s',
-                value
-            )
-        else:
-            database().insert(
-               f'INSERT INTO config({column}) '
-                'VALUES(%s)',
-                value
-            )
-    
+        database().insert(
+            'UPDATE config '
+           f'SET {column} = %s',
+            value
+        )    
+
     def _change_id(self, value: int, column: str):
         self._change_config(str(value), column)
 

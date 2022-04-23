@@ -365,7 +365,7 @@ class NeededForPurchase(Component):
         self.cant_transact_reason+=\
                 f'{build_name}: {needed_build_count if self.should_not_be else needed_build_count*-1}, '
 
-        if (needed_build_count>0.0 if self.should_not_be else needed_build_count>=0.0):
+        if (needed_build_count>0 if self.should_not_be else needed_build_count>=0):
             return True
         
 

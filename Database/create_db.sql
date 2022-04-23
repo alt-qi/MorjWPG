@@ -192,7 +192,8 @@ CREATE TABLE config(
     curator_role varchar(32),
     player_role varchar(32),
     publisher_channel varchar(32),
-    country_prefix varchar(32)
+    country_prefix varchar(32),
+    database_version float
 );
 
 -- 
@@ -441,9 +442,10 @@ CREATE OR REPLACE FUNCTION get_needed_count_build(seller_country_id int, selling
         FROM builds_inventory
         WHERE country_id = seller_country_id AND build_id = selling_build_id
     )
-    SELECT COALESCE(count, 0)-selling_count AS needed_count
+    SELECT floor(COALESCE(count, 0)-selling_count) AS needed_count
     FROM countries
     LEFT JOIN inventory USING(country_id)
+    WHERE country_id = seller_country_id
 $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_needed_count_unit(seller_country_id int, selling_unit_id int, selling_count float) RETURNS int AS $$
@@ -452,7 +454,7 @@ CREATE OR REPLACE FUNCTION get_needed_count_unit(seller_country_id int, selling_
         FROM units_inventory
         WHERE country_id = seller_country_id AND unit_id = selling_unit_id
     )
-    SELECT COALESCE(count, 0)-selling_count AS needed_count
+    SELECT floor(COALESCE(count, 0)-selling_count) AS needed_count
     FROM countries
     LEFT JOIN inventory USING(country_id)
     WHERE country_id = seller_country_id
