@@ -2,7 +2,7 @@
 <div align='center'>
 
   <a href="https://github.com/Maxim-Beglyanov/MorjWPG/commits"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/Maxim-Beglyanov/MorjWPG?color=ff9763"></a>
-  <a href="https://github.com/Maxim-Beglyanov/MorjWPG/releases"><img alt="GitHub releases" src="https://img.shields.io/github/v/release/Maxim-Beglyanov/MorjWPG?color=63cbff&label=version"></a>
+  <a href="https://github.com/Maxim-Beglyanov/MorjWPG/releases"><img alt="GitHub releases" src="https://img.shields.io/github/v/release/Maxim-Beglyanov/MorjWPG.svg?color=63cbff&label=version"></a>
   
 </div>
 
