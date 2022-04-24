@@ -136,3 +136,4 @@ config.sh
 logfile	
 
 .gitignore
+Desktop.ini
